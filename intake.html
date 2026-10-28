@@ -4,152 +4,76 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
   <title>Tryout Registration</title>
-  
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
-  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <style>
-    body { background-color: #13151A; display: flex; justify-content: center; padding: 20px; }
-    .form-container { background-color: #232732; border-radius: 12px; padding: 30px; width: 100%; max-width: 500px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+    :root { --brand: #FF6B35; } /* Default, will be overwritten by DB */
+    body { background-color: #13151A; display: flex; justify-content: center; padding: 15px; padding-bottom: 80px; font-family: 'Inter', sans-serif; margin: 0; }
+    .form-container { background-color: #232732; border-radius: 12px; padding: 20px; width: 100%; max-width: 500px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
     
-    .form-row { display: flex; gap: 15px; margin-bottom: 20px; }
-    .form-group { flex: 1; display: flex; flex-direction: column; }
+    /* Squashed Margins for less scrolling */
+    .form-row { display: flex; gap: 10px; margin-bottom: 12px; }
+    .form-group { flex: 1; display: flex; flex-direction: column; margin-bottom: 12px; }
     
-    label { font-size: 13px; color: #ffffff; font-weight: 600; margin-bottom: 8px; }
+    label { font-size: 12px; color: #ffffff; font-weight: 600; margin-bottom: 5px; }
     
     input[type="text"], input[type="number"], input[type="tel"], input[type="email"], select {
-      background-color: #1A1D24;
-      border: 1px solid #3A4150;
-      color: #E2E8F0;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 15px;
-      outline: none;
-      transition: border-color 0.2s;
+      background-color: #1A1D24; border: 1px solid #3A4150; color: #E2E8F0;
+      padding: 10px; border-radius: 8px; font-size: 15px; outline: none; transition: 0.2s;
     }
     input::placeholder { color: #4B5563; }
-    input:focus, select:focus { border-color: #FF6B35; }
+    input:focus, select:focus { border-color: var(--brand); }
 
-    .checkbox-box {
-      background-color: #1A1D24;
-      border: 1px solid #3A4150;
-      border-radius: 8px;
-      padding: 15px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .checkbox-item { display: flex; align-items: center; gap: 10px; color: #E2E8F0; font-size: 14px; cursor: pointer; }
-    .checkbox-item input { width: 18px; height: 18px; accent-color: #FF6B35; cursor: pointer; }
+    .checkbox-box { background-color: #1A1D24; border: 1px solid #3A4150; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+    .checkbox-item { display: flex; align-items: center; gap: 8px; color: #E2E8F0; font-size: 13px; cursor: pointer; }
+    .checkbox-item input { width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; }
 
-    .btn-submit {
-      background-color: #FF6B35;
-      color: white;
-      border: none;
-      padding: 16px;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 700;
-      width: 100%;
-      cursor: pointer;
-      margin-top: 10px;
-      transition: opacity 0.2s;
-    }
+    .btn-submit { background-color: var(--brand); color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: 700; width: 100%; cursor: pointer; margin-top: 5px; }
     .btn-submit:active { transform: scale(0.98); }
     .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
-    
-    /* Small admin toggle at top */
-    .admin-toggle { text-align: right; margin-bottom: 20px; }
-    .admin-toggle select { padding: 6px; font-size: 12px; background: transparent; border: 1px solid #3A4150; color: #94A3B8; }
   </style>
 </head>
 <body>
-
-  <div class="form-container">
-    
-    <div class="admin-toggle">
-      <select id="modeToggle" onchange="toggleStudentId()">
-        <option value="hs">High School Mode (Requires ID)</option>
-        <option value="club">Club Mode (No ID)</option>
-      </select>
-    </div>
-
+  <div class="form-container" id="formWrapper" style="display: none;"> <!-- Hidden until settings load -->
     <form id="intakeForm" onsubmit="submitIntakeForm(event)">
       
-      <!-- Row 1 -->
       <div class="form-row">
-        <div class="form-group">
-          <label>First Name</label>
-          <input type="text" id="first_name" placeholder="Jane" required>
-        </div>
-        <div class="form-group">
-          <label>Last Name</label>
-          <input type="text" id="last_name" placeholder="Doe" required>
-        </div>
+        <div class="form-group"><label>First Name</label><input type="text" id="first_name" placeholder="Jane" required></div>
+        <div class="form-group"><label>Last Name</label><input type="text" id="last_name" placeholder="Doe" required></div>
       </div>
 
-      <!-- Row 2 -->
       <div class="form-row">
-        <div class="form-group" id="studentIdWrapper">
-          <label>Student ID</label>
-          <input type="text" id="student_id" placeholder="123456" required>
-        </div>
-        <div class="form-group">
-          <label>Tryout #</label>
-          <input type="number" id="tryout_number" placeholder="100" required>
-        </div>
+        <div class="form-group" id="studentIdWrapper" style="display: none;"><label>Student ID</label><input type="text" id="student_id" placeholder="123456"></div>
+        <div class="form-group"><label>Tryout #</label><input type="number" id="tryout_number" placeholder="100" required></div>
       </div>
 
-      <!-- Row 3 -->
       <div class="form-row">
         <div class="form-group">
           <label>Grade Level</label>
           <select id="grade" required>
             <option value="">Select Grade</option>
-            <option value="9">9th Grade</option>
-            <option value="10">10th Grade</option>
-            <option value="11">11th Grade</option>
-            <option value="12">12th Grade</option>
+            <option value="9">9th</option><option value="10">10th</option><option value="11">11th</option><option value="12">12th</option>
           </select>
         </div>
         <div class="form-group">
           <label>Tryout Group</label>
           <select id="tryout_group" required>
             <option value="">Select Group</option>
-            <option value="1">Group 1</option>
-            <option value="2">Group 2</option>
-            <option value="3">Group 3</option>
+            <option value="1">Group 1</option><option value="2">Group 2</option><option value="3">Group 3</option>
           </select>
         </div>
       </div>
 
-      <!-- Row 4 & 5 (Full Width) -->
-      <div class="form-group" style="margin-bottom: 20px;">
-        <label>Phone Number</label>
-        <input type="tel" id="phone" placeholder="(555) 555-5555">
-      </div>
-      
-      <div class="form-group" style="margin-bottom: 20px;">
-        <label>Email Address</label>
-        <input type="email" id="email" placeholder="student@school.net">
-      </div>
+      <div class="form-group"><label>Phone Number</label><input type="tel" id="phone" placeholder="(555) 555-5555"></div>
+      <div class="form-group"><label>Email Address</label><input type="email" id="email" placeholder="student@school.net"></div>
 
-      <!-- Row 6 -->
       <div class="form-row">
-        <div class="form-group">
-          <label>Height</label>
-          <input type="text" id="height_input" placeholder='5&#39;8"'>
-        </div>
-        <div class="form-group">
-          <label>Years Exp.</label>
-          <input type="number" id="years_exp" placeholder="e.g., 2">
-        </div>
+        <div class="form-group"><label>Height</label><input type="text" id="height_input" placeholder='5&#39;8"'></div>
+        <div class="form-group"><label>Years Exp.</label><input type="number" id="years_exp" placeholder="e.g., 2"></div>
       </div>
 
-      <!-- Positions Box -->
-      <div class="form-group" style="margin-bottom: 20px;">
+      <div class="form-group">
         <label>Preferred Position(s)</label>
         <div class="checkbox-box">
           <label class="checkbox-item"><input type="checkbox" name="position" value="Outside Hitter"> Outside Hitter</label>
@@ -160,35 +84,24 @@
         </div>
       </div>
 
-      <!-- Gear Check-In Box -->
-      <div class="form-group" style="margin-bottom: 25px;">
+      <div class="form-group">
         <label>Gear Sizes (Optional)</label>
         <div class="form-row" style="margin-bottom: 0;">
-          <div class="form-group">
-            <select id="shirt_size" style="font-size: 13px;">
-              <option value="">T-Shirt Size...</option>
-              <option value="XS">XS</option><option value="S">S</option><option value="M">M</option>
-              <option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option>
-            </select>
+          <div class="form-group" style="margin-bottom: 0;">
+            <select id="shirt_size"><option value="">T-Shirt...</option><option value="XS">XS</option><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option></select>
           </div>
-          <div class="form-group">
-            <select id="spandex_size" style="font-size: 13px;">
-              <option value="">Spandex Size...</option>
-              <option value="XS">XS</option><option value="S">S</option><option value="M">M</option>
-              <option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option>
-            </select>
+          <div class="form-group" style="margin-bottom: 0;">
+            <select id="spandex_size"><option value="">Spandex...</option><option value="XS">XS</option><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option></select>
           </div>
         </div>
       </div>
 
       <button type="submit" id="submitBtn" class="btn-submit">Submit Registration</button>
-
     </form>
     
-    <!-- Success Message -->
     <div id="successMessage" style="display: none; text-align: center; padding: 30px 10px;">
       <div style="font-size: 50px; margin-bottom: 15px;">🏐</div>
-      <h2 style="color: #FF6B35; margin-top: 0;">Registration Complete!</h2>
+      <h2 style="color: var(--brand); margin-top: 0;">Registration Complete!</h2>
       <p style="color: #94A3B8;">Please proceed to the photo station.</p>
       <button class="btn-submit" onclick="location.reload()" style="background-color: #3A4150; margin-top: 20px;">Register Another Player</button>
     </div>

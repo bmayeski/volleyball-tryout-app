@@ -40,6 +40,50 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Load Default View
     loadView('overview');
+
+    // Put this right at the top of app.js inside your DOMContentLoaded event listener:
+    // fetchAndApplySettings();
+
+    async function fetchAndApplySettings() {
+        const settings = await apiFetchSettings();
+        if (settings) {
+            // Apply color globally across the dashboard
+            document.documentElement.style.setProperty('--secondary', settings.theme_color);
+            
+            const colorInput = document.getElementById('settingThemeColor');
+            if (colorInput) {
+                colorInput.value = settings.theme_color;
+                document.getElementById('settingThemeHex').value = settings.theme_color;
+                document.getElementById('settingRequireId').checked = settings.require_student_id;
+            }
+        }
+    }
+
+    async function saveAppSettings() {
+        const btn = document.getElementById('btnSaveSettings');
+        btn.innerText = "Saving...";
+        btn.disabled = true;
+
+        const newColor = document.getElementById('settingThemeColor').value;
+        const requireId = document.getElementById('settingRequireId').checked;
+
+        const response = await apiSaveSettings(requireId, newColor);
+        
+        if (response.success) {
+            document.documentElement.style.setProperty('--secondary', newColor); // Apply instantly
+            btn.innerText = "Saved!";
+            btn.style.background = "var(--accentGreen)";
+            setTimeout(() => {
+                btn.innerText = "Save Settings";
+                btn.style.background = "var(--secondary)";
+                btn.disabled = false;
+            }, 1500);
+        } else {
+            alert("Failed to save settings.");
+            btn.innerText = "Save Settings";
+            btn.disabled = false;
+        }
+    }
 });
 
 function loadView(viewName) {

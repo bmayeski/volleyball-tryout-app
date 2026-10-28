@@ -166,3 +166,30 @@ async function apiUploadAthletePhoto(athleteId, file) {
         return { success: false, error: error.message };
     }
 }
+
+// ==========================================
+// 6. GLOBAL SETTINGS
+// ==========================================
+async function apiFetchSettings() {
+    try {
+        const { data, error } = await supabaseClient.from('app_settings').select('*').eq('id', 1).single();
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error("Error fetching settings:", error);
+        return null;
+    }
+}
+
+async function apiSaveSettings(requireId, themeColor) {
+    try {
+        const { error } = await supabaseClient.from('app_settings').update({
+            require_student_id: requireId,
+            theme_color: themeColor
+        }).eq('id', 1);
+        if (error) throw error;
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}

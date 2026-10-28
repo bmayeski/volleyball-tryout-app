@@ -1,48 +1,45 @@
-// ⚠️ Initialize Supabase
 const SUPABASE_URL = 'https://rtkevenhwlcejfxbmlpd.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_uuAnsVTxd_NGIm9N9pjtKA_kS85k9VB';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Toggle High School vs Club mode
-function toggleStudentId() {
-    const mode = document.getElementById('modeToggle').value;
-    const idWrapper = document.getElementById('studentIdWrapper');
-    const idInput = document.getElementById('student_id');
-
-    if (mode === 'club') {
-        idWrapper.style.display = 'none';
-        idInput.value = '';
-        idInput.removeAttribute('required');
-    } else {
-        idWrapper.style.display = 'flex';
-        idInput.setAttribute('required', 'true');
+// Fetch settings when the page loads
+document.addEventListener('DOMContentLoaded', async () => {
+    const { data } = await supabaseClient.from('app_settings').select('*').eq('id', 1).single();
+    if (data) {
+        // Update the brand color
+        document.documentElement.style.setProperty('--brand', data.theme_color);
+        
+        // Hide or Show Student ID based on settings
+        const idWrapper = document.getElementById('studentIdWrapper');
+        const idInput = document.getElementById('student_id');
+        if (data.require_student_id) {
+            idWrapper.style.display = 'flex';
+            idInput.setAttribute('required', 'true');
+        } else {
+            idWrapper.style.display = 'none';
+            idInput.removeAttribute('required');
+        }
     }
-}
+    // Fade the form in after settings are applied
+    document.getElementById('formWrapper').style.display = 'block';
+});
 
 async function submitIntakeForm(event) {
     event.preventDefault();
-    
     const btn = document.getElementById('submitBtn');
-    btn.innerText = "Submitting...";
-    btn.disabled = true;
+    btn.innerText = "Submitting..."; btn.disabled = true;
 
-    // Gather Checkboxes
     const positionCheckboxes = document.querySelectorAll('input[name="position"]:checked');
     const positionsArray = Array.from(positionCheckboxes).map(cb => cb.value);
 
-    // Format Height to raw inches for the database
     let heightInches = null;
     const heightInput = document.getElementById('height_input').value.trim();
     if (heightInput !== '') {
         const match = heightInput.match(/(\d+)['\s]+(\d+)/);
-        if (match) {
-            heightInches = (parseInt(match[1]) * 12) + parseInt(match[2]);
-        } else {
-            heightInches = parseInt(heightInput); 
-        }
+        if (match) heightInches = (parseInt(match[1]) * 12) + parseInt(match[2]);
+        else heightInches = parseInt(heightInput); 
     }
 
-    // Build Payload
     const newAthleteData = {
         first_name: document.getElementById('first_name').value.trim(),
         last_name: document.getElementById('last_name').value.trim(),
@@ -61,21 +58,12 @@ async function submitIntakeForm(event) {
     };
 
     try {
-        const { error } = await supabaseClient
-            .from('athletes')
-            .insert([newAthleteData]);
-
+        const { error } = await supabaseClient.from('athletes').insert([newAthleteData]);
         if (error) throw error;
-
-        // Show Success
         document.getElementById('intakeForm').style.display = 'none';
-        document.getElementById('modeToggle').style.display = 'none';
         document.getElementById('successMessage').style.display = 'block';
-
     } catch (error) {
-        console.error("Error submitting form:", error);
-        alert("There was an error saving your info. Please try again.");
-        btn.innerText = "Submit Registration";
-        btn.disabled = false;
+        alert("Error submitting. Please try again.");
+        btn.innerText = "Submit Registration"; btn.disabled = false;
     }
 }
