@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+  <title>Tryout Manager</title>
+  
+  <!-- Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Separated CSS -->
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- Supabase Database Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <!-- ==========================================
+       SIDEBAR NAVIGATION
+  ========================================== -->
+  <nav id="sidebar" class="sidebar">
+    <div style="padding: 20px; border-bottom: 1px solid #2A303C; display: flex; align-items: center; gap: 15px;">
+      <!-- Placeholder for a logo -->
+      <div style="width: 50px; height: 50px; background: #3A4150; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;">🏐</div>
+      
+      <div>
+        <h2 style="margin: 0; color: var(--text-color); font-size: 20px; line-height: 1.2;" id="sidebarSchoolName">
+          Volleyball<br>
+          <span style="color: var(--secondary); font-size: 14px;">Tryout Manager</span>
+        </h2>
+        <div style="color: #94A3B8; font-size: 12px; margin-top: 4px; word-break: break-all;" id="sidebarUserEmail">
+          Coach Panel
+        </div>
+      </div>
+    </div> 
+    
+    <ul class="nav-links">
+      <li><a href="#" onclick="loadView('overview'); return false;" class="active-nav">Dashboard</a></li>
+      <li><a href="#" onclick="loadView('photo'); return false;">Photo Check-In</a></li>
+      <li><a href="#" onclick="loadView('mile'); return false;">Mile Time Entry</a></li>
+      <li><a href="#" onclick="loadView('station'); return false;">Station Evaluator</a></li>
+    </ul>
+  </nav>
+
+  <!-- ==========================================
+       MAIN CONTENT AREA
+  ========================================== -->
+  <div class="main-content" id="mainContent">
+    <header>
+      <div class="header-left">
+        <button id="hamburgerBtn" class="hamburger">☰</button>
+        <h1 id="pageTitle">Dashboard Overview</h1>
+      </div>
+    </header>
+
+    <main id="app-body">
+      
+      <!-- ==========================================
+           VIEW: DASHBOARD (Visible by default)
+      ========================================== -->
+      <div id="view-overview" class="app-view" style="display: block;">
+        <div class="dashboard-wrapper">
+          <div class="stat-grid" id="statGrid">
+            <div class="stat-card loading">Loading stats...</div>
+          </div>
+        
+          <div class="table-container" style="background: transparent; box-shadow: none; padding: 0;">
+            <div class="table-header" style="background: var(--card-bg); padding: 16px; border-radius: 12px; margin-bottom: 16px;">
+              <h3 style="margin: 0 0 10px 0;">Athlete Roster</h3>
+              <input type="text" id="dashboardSearch" class="search-box" style="max-width: 100%;" placeholder="Search by name, #, or position..." onkeyup="filterTable()">
+            </div>
+        
+            <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border: 1px solid #3A4150;">
+              <select id="filterGroup" class="search-box" onchange="filterTable()">
+                <option value="All">All Groups</option>
+                <option value="1">Group 1</option>
+                <option value="2">Group 2</option>
+                <option value="3">Group 3</option>
+              </select>
+                
+              <select id="filterStatus" class="search-box" onchange="filterTable()">
+                <option value="All">All Statuses</option>
+                <option value="Evaluating">Evaluating (Pending)</option>
+                <option value="Varsity">Varsity</option>
+                <option value="JV">JV</option>
+                <option value="Freshman">Freshman</option>
+                <option value="Cut">Cut</option>
+              </select>
+                
+              <select id="filterPosition" class="search-box" onchange="filterTable()">
+                <option value="All">All Positions</option>
+                <option value="Outside Hitter">Outside Hitter</option>
+                <option value="Middle Blocker">Middle Blocker</option>
+                <option value="Setter">Setter</option>
+                <option value="Opposite Hitter">Opposite Hitter</option>
+                <option value="Libero/DS">Libero / DS</option>
+              </select>
+                
+              <select id="sortBy" class="search-box" onchange="filterTable()">
+                <option value="number">Sort: Tryout #</option>
+                <option value="firstAsc">Sort: First Name (A-Z)</option>
+                <option value="firstDesc">Sort: First Name (Z-A)</option>
+                <option value="lastAsc">Sort: Last Name (A-Z)</option>
+                <option value="lastDesc">Sort: Last Name (Z-A)</option>
+                <option value="overallDesc">Sort: Overall Rating (High - Low)</option>
+                <option value="skillDesc">Sort: Volleyball Skills (High - Low)</option>
+                <option value="athDesc">Sort: Athleticism (High - Low)</option>
+                <option value="gradeDesc">Sort: Grade (Oldest - Youngest)</option>
+                <option value="gradeAsc">Sort: Grade (Youngest - Oldest)</option>
+              </select>
+            </div>
+            
+            <div id="dashboardCardContainer" class="card-container"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           VIEW: PHOTO CHECK-IN
+      ========================================== -->
+      <div id="view-photo" class="app-view" style="display: none;">
+        <div class="photo-container">
+          <div class="table-container">
+            <div class="table-header">
+              <h3>Missing Photos</h3>
+              <input type="text" id="photoSearch" class="search-box" placeholder="Search by name or #..." onkeyup="filterPhotoTable()">
+            </div>
+            
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;" onchange="processPhoto(event)">
+            <input type="hidden" id="currentUploadId">
+            <input type="hidden" id="currentUploadName">
+        
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Athlete Name</th>
+                    <th>Grade</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="photoTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           VIEW: MILE TIME ENTRY
+      ========================================== -->
+      <div id="view-mile" class="app-view" style="display: none;">
+        <div class="table-container">
+          <div class="table-header">
+            <h3>Rapid Time Entry</h3>
+            <input type="number" id="mileSearch" class="search-box" placeholder="Search by Tryout #..." onkeyup="filterMileTable()" autofocus>
+          </div>
+          
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Athlete</th>
+                  <th>Mile Time</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="mileTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           VIEW: STATION EVALUATOR
+      ========================================== -->
+      <div id="view-station" class="app-view" style="display: none;">
+        <div class="table-container" style="background: transparent; box-shadow: none; padding: 0;">
+          <div class="table-header" style="display: flex; flex-direction: column; gap: 15px; background: var(--card-bg); padding: 16px; border-radius: 12px;">
+            <h3 style="margin: 0;">Station Evaluator</h3>
+            
+            <div style="display: flex; gap: 10px; width: 100%;">
+              <select id="stationSelect" class="search-box" style="flex: 1;" onchange="renderStationTable()">
+                <option value="">-- Select Station --</option>
+                <optgroup label="Athleticism">
+                  <option value="Vertical Jump">Vertical Jump</option>
+                  <option value="Sprint Time">Sprint Time</option>
+                  <option value="Triple Jump">Triple Jump</option>
+                </optgroup>
+                <optgroup label="Volleyball Skills">
+                  <option value="Passing">Passing</option>
+                  <option value="Serving">Serving</option>
+                  <option value="Hitting">Hitting</option>
+                  <option value="Setting">Setting</option>
+                  <option value="Defense">Defense</option>
+                  <option value="Receive">Receive</option>
+                </optgroup>
+              </select>
+        
+              <input type="text" id="stationSearch" class="search-box" style="flex: 1;" placeholder="Search # or Name..." onkeyup="renderStationTable()">
+            </div>
+        
+            <div id="limitControls" style="display: none;" class="limit-inputs">
+              <div style="flex: 1; display: flex; flex-direction: column;">
+                <label style="font-size: 11px; color: #94A3B8; margin-bottom: 4px; text-transform: uppercase;">Min Limit</label>
+                <input type="number" id="customMin" step="any" style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 6px; background-color: var(--bg-color); color: var(--text-color); border: 1px solid #3A4150; font-size: 16px;" onchange="applyCustomLimits()">
+              </div>
+              <div style="flex: 1; display: flex; flex-direction: column;">
+                <label style="font-size: 11px; color: #94A3B8; margin-bottom: 4px; text-transform: uppercase;">Max Limit</label>
+                <input type="number" id="customMax" step="any" style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 6px; background-color: var(--bg-color); color: var(--text-color); border: 1px solid #3A4150; font-size: 16px;" onchange="applyCustomLimits()">
+              </div>
+            </div>
+          </div>
+          
+          <div id="stationCardContainer" class="card-container">
+            <div style="text-align: center; padding: 40px 20px; color: #94A3B8;">Please select a Station to begin.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           VIEW: ATHLETE PROFILE
+      ========================================== -->
+      <div id="view-profile" class="app-view" style="display: none;">
+        <div class="profile-container" style="padding-bottom: 30px;">
+          <button class="btn-action" style="margin-bottom: 15px; background: transparent; border: 1px solid #3A4150; color: #94A3B8;" onclick="loadView('overview')">
+            ← Back to Dashboard
+          </button>
+        
+          <div class="mobile-card" style="text-align: center; margin-bottom: 20px;">
+            <div id="profilePhotoContainer" style="display: flex; justify-content: center; margin-bottom: 15px;"></div>
+            <h2 id="profileName" style="margin: 0; color: var(--text-color);"></h2>
+            <div id="profileDetails" style="color: #94A3B8; margin-top: 5px; font-size: 15px;"></div>
+          </div>
+        
+          <div class="mobile-card" style="margin-bottom: 20px; border: 1px solid var(--accentBlue);">
+            <h3 style="margin-top: 0; margin-bottom: 15px; color: var(--accentBlue);">Player Management</h3>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+              <div style="flex: 1;">
+                <label style="color: #94A3B8; font-size: 12px; text-transform: uppercase; font-weight: bold;">Team Placement</label>
+                <select id="statusSelect" class="search-box" style="width: 100%; margin-top: 5px;" onchange="saveStatus()">
+                  <option value="Evaluating">Evaluating (Pending)</option>
+                  <option value="Varsity">Varsity</option>
+                  <option value="JV">JV</option>
+                  <option value="Freshman">Freshman</option>
+                  <option value="Cut">Cut</option>
+                </select>
+              </div>
+              
+              <div style="flex: 1;">
+                <label style="color: #94A3B8; font-size: 12px; text-transform: uppercase; font-weight: bold;">Tryout Group</label>
+                <select id="groupSelect" class="search-box" style="width: 100%; margin-top: 5px;" onchange="changeAthleteGroup(this.value)">
+                  <option value="1">Group 1</option>
+                  <option value="2">Group 2</option>
+                  <option value="3">Group 3</option>
+                  <option value="Unassigned">Unassigned</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        
+          <div class="mobile-card">
+            <h3 style="margin-top: 0; border-bottom: 1px solid #2A303C; padding-bottom: 10px;">Final Evaluations</h3>
+            <div id="profileStatsLoading" style="text-align: center; padding: 20px; color: #94A3B8;">Fetching stats from database...</div>
+            <div id="profileStatsGrid" style="display: none; grid-template-columns: 1fr 1fr; gap: 12px;"></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ==========================================
+       MODALS & OVERLAYS
+  ========================================== -->
+  <div id="editModalOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box;">
+    <div class="mobile-card" style="width: 100%; max-width: 350px; text-align: center; margin: 0;">
+      <h3 id="editModalTitle" style="margin-top: 0; margin-bottom: 15px; color: var(--text-color);">Edit Stat</h3>
+      <input type="text" id="editModalInput" class="search-box" style="width: 100%; margin-bottom: 5px; text-align: center; font-size: 20px; padding: 12px; box-sizing: border-box;" oninput="updateModalFormattedDisplay()" />
+      <div id="editModalFormattedDisplay" style="font-size: 15px; font-weight: bold; color: var(--accentBlue); margin-bottom: 20px; height: 20px;"></div>
+      
+      <div style="display: flex; gap: 10px;">
+        <button class="btn-action" style="flex: 1; background: #3A4150; color: #fff; border-color: transparent;" onclick="closeEditModal()">Cancel</button>
+        <button id="editModalSaveBtn" class="btn-action" style="flex: 1; background: var(--accentGreen); color: #fff; border-color: transparent;" onclick="confirmEditStat()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="overlay" class="overlay"></div>
+
+  <!-- ==========================================
+       JAVASCRIPT IMPORTS
+  ========================================== -->
+  <script src="supabase-api.js"></script>
+  <script src="calculations.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

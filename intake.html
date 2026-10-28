@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+  <title>Tryout Check-In</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body style="display: block; padding: 20px; max-width: 600px; margin: 0 auto;">
+
+  <div style="text-align: center; margin-bottom: 30px;">
+    <div style="width: 80px; height: 80px; background: #3A4150; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 15px;">🏐</div>
+    <h1 style="margin: 0; color: var(--text-color);">Player Check-In</h1>
+    <p style="color: #94A3B8; margin-top: 5px;">Welcome to tryouts! Please fill out your information below.</p>
+  </div>
+
+  <div class="mobile-card" style="border-top: 4px solid var(--accentBlue) !important; padding: 25px;">
+    <form id="intakeForm" onsubmit="submitIntakeForm(event)">
+      
+      <!-- Tryout Number (Crucial for tracking) -->
+      <div style="margin-bottom: 20px;">
+        <label style="font-size: 12px; color: #94A3B8; text-transform: uppercase; font-weight: bold;">Assigned Tryout # (From Coach)</label>
+        <input type="number" id="tryout_number" class="search-box" style="width: 100%; box-sizing: border-box; font-size: 18px; padding: 12px; margin-top: 5px;" required>
+      </div>
+
+      <!-- Basic Info -->
+      <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+        <div style="flex: 1;">
+          <label style="font-size: 12px; color: #94A3B8; text-transform: uppercase; font-weight: bold;">First Name</label>
+          <input type="text" id="first_name" class="search-box" style="width: 100%; box-sizing: border-box; margin-top: 5px;" required>
+        </div>
+        <div style="flex: 1;">
+          <label style="font-size: 12px; color: #94A3B8; text-transform: uppercase; font-weight: bold;">Last Name</label>
+          <input type="text" id="last_name" class="search-box" style="width: 100%; box-sizing: border-box; margin-top: 5px;" required>
+        </div>
+      </div>
+
+      <!-- Grade & Height -->
+      <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+        <div style="flex: 1;">
+          <label style="font-size: 12px; color: #94A3B8; text-transform: uppercase; font-weight: bold;">Grade</label>
+          <select id="grade" class="search-box" style="width: 100%; box-sizing: border-box; margin-top: 5px;" required>
+            <option value="">Select...</option>
+            <option value="9">9th Grade</option>
+            <option value="10">10th Grade</option>
+            <option value="11">11th Grade</option>
+            <option value="12">12th Grade</option>
+          </select>
+        </div>
+        <div style="flex: 1;">
+          <label style="font-size: 12px; color: #94A3B8; text-transform: uppercase; font-weight: bold;">Height (ex. 5'8")</label>
+          <input type="text" id="height_input" class="search-box" placeholder="e.g., 5'8" style="width: 100%; box-sizing: border-box; margin-top: 5px;">
+        </div>
+      </div>
+
+      <!-- Contact Info -->
+      <div style="margin-bottom: 20px;">
+        <label style="font-size: 12px; color: #94A3B8; text-transform: uppercase; font-weight: bold;">Player Phone (Optional)</label>
+        <input type="tel" id="phone" class="search-box" style="width: 100%; box-sizing: border-box; margin-top: 5px;">
+      </div>
+
+      <!-- Positions (Checkboxes for array storage) -->
+      <div style="margin-bottom: 25px;">
+        <label style="font-size: 12px; color: #94A3B8; text-transform: uppercase; font-weight: bold; display: block; margin-bottom: 10px;">Preferred Positions (Select all that apply)</label>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" name="position" value="Outside Hitter" style="width: 18px; height: 18px;"> Outside Hitter
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" name="position" value="Middle Blocker" style="width: 18px; height: 18px;"> Middle Blocker
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" name="position" value="Setter" style="width: 18px; height: 18px;"> Setter
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" name="position" value="Opposite Hitter" style="width: 18px; height: 18px;"> Opposite Hitter
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" name="position" value="Libero/DS" style="width: 18px; height: 18px;"> Libero / DS
+          </label>
+        </div>
+      </div>
+
+      <!-- Gear Check-In (Moved here from dashboard!) -->
+      <div style="background: var(--bg-color); padding: 15px; border-radius: 8px; margin-bottom: 25px; border: 1px solid #3A4150;">
+        <h4 style="margin: 0 0 15px 0; color: var(--secondary);">Apparel Sizes</h4>
+        
+        <div style="margin-bottom: 15px;">
+          <label style="font-size: 12px; color: #94A3B8; text-transform: uppercase; font-weight: bold;">T-Shirt Size</label>
+          <select id="shirt_size" class="search-box" style="width: 100%; box-sizing: border-box; margin-top: 5px;" required>
+            <option value="">Select Size...</option>
+            <option value="XS">X-Small</option>
+            <option value="S">Small</option>
+            <option value="M">Medium</option>
+            <option value="L">Large</option>
+            <option value="XL">X-Large</option>
+            <option value="XXL">XX-Large</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="font-size: 12px; color: #94A3B8; text-transform: uppercase; font-weight: bold;">Spandex Size</label>
+          <select id="spandex_size" class="search-box" style="width: 100%; box-sizing: border-box; margin-top: 5px;" required>
+            <option value="">Select Size...</option>
+            <option value="XS">X-Small</option>
+            <option value="S">Small</option>
+            <option value="M">Medium</option>
+            <option value="L">Large</option>
+            <option value="XL">X-Large</option>
+            <option value="XXL">XX-Large</option>
+          </select>
+        </div>
+      </div>
+
+      <button type="submit" id="submitBtn" class="btn-action" style="width: 100%; padding: 15px; font-size: 18px; background: var(--accentBlue); color: white;">
+        Submit Check-In
+      </button>
+
+    </form>
+    
+    <!-- Success Message (Hidden initially) -->
+    <div id="successMessage" style="display: none; text-align: center; padding: 30px 10px;">
+      <div style="font-size: 50px; margin-bottom: 15px;">✅</div>
+      <h2 style="color: var(--accentGreen); margin-top: 0;">You're checked in!</h2>
+      <p style="color: #94A3B8;">Head over to the photo station so coaches can take your picture.</p>
+      <button class="btn-action" onclick="location.reload()" style="margin-top: 20px; background: transparent; border: 1px solid #3A4150; color: #94A3B8;">Check In Another Player</button>
+    </div>
+  </div>
+
+  <script src="intake.js"></script>
+</body>
+</html>
