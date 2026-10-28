@@ -8,13 +8,24 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <style>
-    :root { --brand: #FF6B35; } /* Default, will be overwritten by DB */
-    body { background-color: #13151A; display: flex; justify-content: center; padding: 15px; padding-bottom: 80px; font-family: 'Inter', sans-serif; margin: 0; }
-    .form-container { background-color: #232732; border-radius: 12px; padding: 20px; width: 100%; max-width: 500px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+    :root { --brand: #FF6B35; }
+    body { background-color: #13151A; display: flex; flex-direction: column; align-items: center; padding: 10px; padding-bottom: 60px; font-family: 'Inter', sans-serif; margin: 0; }
     
-    /* Squashed Margins for less scrolling */
-    .form-row { display: flex; gap: 10px; margin-bottom: 12px; }
-    .form-group { flex: 1; display: flex; flex-direction: column; margin-bottom: 12px; }
+    /* The New Dynamic Header Header */
+    .brand-header {
+      width: 100%; max-width: 500px;
+      display: flex; flex-direction: column; align-items: center;
+      margin-top: 15px; margin-bottom: 20px;
+      text-align: center;
+    }
+    .brand-logo { max-height: 80px; margin-bottom: 10px; display: none; } /* Hidden if no logo URL */
+    .brand-title { color: var(--brand); font-size: 24px; font-weight: bold; margin: 0; text-transform: uppercase; }
+    .brand-subtitle { color: #E2E8F0; font-size: 14px; margin: 5px 0 0 0; text-transform: uppercase; letter-spacing: 1px; }
+
+    .form-container { background-color: #232732; border-radius: 12px; padding: 15px; width: 100%; max-width: 500px; box-sizing: border-box; border-top: 4px solid var(--brand); box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+    
+    .form-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; } /* Added flex-wrap for tight screens! */
+    .form-group { flex: 1; min-width: 45%; display: flex; flex-direction: column; margin-bottom: 10px; }
     
     label { font-size: 12px; color: #ffffff; font-weight: 600; margin-bottom: 5px; }
     
@@ -35,7 +46,15 @@
   </style>
 </head>
 <body>
-  <div class="form-container" id="formWrapper" style="display: none;"> <!-- Hidden until settings load -->
+
+  <!-- Dynamic Branding injected by intake.js -->
+  <div class="brand-header" id="brandHeader" style="display: none;">
+    <img id="displayLogo" class="brand-logo" src="" alt="Program Logo">
+    <h1 id="displayProgramName" class="brand-title"></h1>
+    <h2 class="brand-subtitle">Tryout Registration</h2>
+  </div>
+
+  <div class="form-container" id="formWrapper" style="display: none;">
     <form id="intakeForm" onsubmit="submitIntakeForm(event)">
       
       <div class="form-row">

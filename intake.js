@@ -2,12 +2,22 @@ const SUPABASE_URL = 'https://rtkevenhwlcejfxbmlpd.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_uuAnsVTxd_NGIm9N9pjtKA_kS85k9VB';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Fetch settings when the page loads
 document.addEventListener('DOMContentLoaded', async () => {
     const { data } = await supabaseClient.from('app_settings').select('*').eq('id', 1).single();
     if (data) {
-        // Update the brand color
+        // Apply Color
         document.documentElement.style.setProperty('--brand', data.theme_color);
+        
+        // Apply Brand Name & Logo
+        if (data.program_name) {
+            document.getElementById('displayProgramName').innerText = data.program_name;
+        }
+        if (data.logo_url) {
+            const logoImg = document.getElementById('displayLogo');
+            logoImg.src = data.logo_url;
+            logoImg.style.display = 'block';
+        }
+        document.getElementById('brandHeader').style.display = 'flex';
         
         // Hide or Show Student ID based on settings
         const idWrapper = document.getElementById('studentIdWrapper');
@@ -20,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             idInput.removeAttribute('required');
         }
     }
-    // Fade the form in after settings are applied
+    
     document.getElementById('formWrapper').style.display = 'block';
 });
 

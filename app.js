@@ -41,49 +41,8 @@ document.addEventListener("DOMContentLoaded", function() {
     // Load Default View
     loadView('overview');
 
-    // Put this right at the top of app.js inside your DOMContentLoaded event listener:
-    // fetchAndApplySettings();
-
-    async function fetchAndApplySettings() {
-        const settings = await apiFetchSettings();
-        if (settings) {
-            // Apply color globally across the dashboard
-            document.documentElement.style.setProperty('--secondary', settings.theme_color);
-            
-            const colorInput = document.getElementById('settingThemeColor');
-            if (colorInput) {
-                colorInput.value = settings.theme_color;
-                document.getElementById('settingThemeHex').value = settings.theme_color;
-                document.getElementById('settingRequireId').checked = settings.require_student_id;
-            }
-        }
-    }
-
-    async function saveAppSettings() {
-        const btn = document.getElementById('btnSaveSettings');
-        btn.innerText = "Saving...";
-        btn.disabled = true;
-
-        const newColor = document.getElementById('settingThemeColor').value;
-        const requireId = document.getElementById('settingRequireId').checked;
-
-        const response = await apiSaveSettings(requireId, newColor);
-        
-        if (response.success) {
-            document.documentElement.style.setProperty('--secondary', newColor); // Apply instantly
-            btn.innerText = "Saved!";
-            btn.style.background = "var(--accentGreen)";
-            setTimeout(() => {
-                btn.innerText = "Save Settings";
-                btn.style.background = "var(--secondary)";
-                btn.disabled = false;
-            }, 1500);
-        } else {
-            alert("Failed to save settings.");
-            btn.innerText = "Save Settings";
-            btn.disabled = false;
-        }
-    }
+    // Fetch and apply your custom colors immediately
+    fetchAndApplySettings();
 });
 
 function loadView(viewName) {
@@ -104,13 +63,13 @@ function loadView(viewName) {
         }
     });
 
-    // 4. Show the selected view & update title
+    // 4. Show the selected view
     const viewElement = document.getElementById(`view-${viewName}`);
     if (viewElement) viewElement.style.display = 'block';
 
     const pageTitle = document.getElementById('pageTitle');
 
-    // 5. Trigger Data Fetches based on view
+    // 5. Update Header Title and Fetch Data
     if (viewName === 'overview') {
         pageTitle.innerText = "Dashboard Overview";
         fetchAndRenderDashboard();
@@ -123,6 +82,9 @@ function loadView(viewName) {
     } else if (viewName === 'station') {
         pageTitle.innerText = "Station Evaluator";
         renderStationTable();
+    } else if (viewName === 'settings') {
+        pageTitle.innerText = "App Settings";
+        fetchAndApplySettings(); // Pulls the latest colors/toggles from Supabase!
     }
 }
 
@@ -130,10 +92,8 @@ function loadView(viewName) {
 // DASHBOARD LOGIC
 // ==========================================
 async function fetchAndRenderDashboard() {
-    // Show loading state
     document.getElementById('dashboardCardContainer').innerHTML = '<div style="padding: 40px; text-align: center; color: #94A3B8;">Loading athlete data...</div>';
     
-    // NOTE: apiFetchDashboardData will be defined in supabase-api.js!
     const response = await apiFetchDashboardData(); 
     
     if (!response) {
@@ -142,12 +102,11 @@ async function fetchAndRenderDashboard() {
     }
 
     const data = response.athletes;
-    allPeerStats = response.allStats; // Save the raw lists of all peer stats for the curve math
+    allPeerStats = response.allStats; 
 
     const athleticismCategories = ['Vertical Jump', 'Sprint Time', 'Triple Jump', 'Mile Time'];
     const skillsCategories = ['Passing', 'Serving', 'Hitting', 'Setting', 'Defense', 'Receive'];
 
-    // Calculate the Bell Curve 1-5 scores for EVERY athlete instantly
     data.forEach(athlete => {
         let athTotal = 0, athCount = 0;
         let skillTotal = 0, skillCount = 0;
@@ -155,7 +114,6 @@ async function fetchAndRenderDashboard() {
         athleticismCategories.forEach(cat => {
             let rawVal = athlete.rawStats[cat];
             if (rawVal !== undefined && rawVal !== null) {
-                // Tapping into the Bell Curve math from calculations.js!
                 let curvedScore = calculateBellCurveScore(cat, rawVal, allPeerStats[cat] || []);
                 let numScore = parseFloat(curvedScore);
                 if (!isNaN(numScore)) { athTotal += numScore; athCount++; }
@@ -178,10 +136,7 @@ async function fetchAndRenderDashboard() {
 
     globalAthleteData = data;
 
-    // Build the Top Stat Cards
     updateStatCards(data);
-    
-    // Render the Mobile Cards
     renderTable(globalAthleteData);
 }
 
@@ -233,7 +188,6 @@ function renderTable(dataToRender) {
         return textMatch && groupMatch && statusMatch && positionMatch;
     });
 
-    // Sorting Logic
     filteredData.sort((a, b) => {
         if (sortBy === 'firstAsc') return a.first_name.localeCompare(b.first_name);
         if (sortBy === 'firstDesc') return b.first_name.localeCompare(a.first_name);
@@ -356,7 +310,7 @@ function renderProfileStats(athlete) {
         
         let curvedScore = '-';
         let displayVal = 'No data';
-        let editVal = ''; // Added for the modal
+        let editVal = '';
         
         if (hasData) {
             curvedScore = calculateBellCurveScore(category, rawVal, allPeerStats[category] || []);
@@ -369,7 +323,6 @@ function renderProfileStats(athlete) {
              rawHtml = `<div style="font-size: 13px; color: #94A3B8; margin-bottom: 10px;">Raw: ${displayVal}</div>`;
         }
 
-        // Added onclick, cursor pointer, and hover transition
         return `<div onclick="editStat('${athlete.id}', '${category}', '${editVal}')" style="background: var(--bg-color); padding: 12px; border-radius: 8px; border: 1px solid #3A4150; text-align: center; position: relative; cursor: pointer; transition: 0.2s;">
             <div style="font-size: 11px; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px;">${category}</div>
             <div style="font-size: 26px; font-weight: bold; color: var(--secondary); margin: 4px 0;">${curvedScore}<span style="font-size: 14px; color:#94A3B8; font-weight: normal;"> / 5</span></div>
@@ -411,13 +364,9 @@ function renderProfileStats(athlete) {
 
 async function changeStatusInline(event, athleteId, newStatus) {
     if (event) event.stopPropagation();
-
-    // 1. Instantly update UI locally
     const athlete = globalAthleteData.find(a => a.id === athleteId);
     if (athlete) athlete.status = newStatus;
     renderTable(globalAthleteData);
-
-    // 2. Push to Supabase asynchronously (defined in supabase-api.js)
     const result = await apiUpdateAthleteField(athleteId, 'status', newStatus);
     if (!result.success) {
         alert("Failed to update status on server.");
@@ -447,9 +396,7 @@ async function saveStatus() {
 // ==========================================
 // STATION EVALUATOR
 // ==========================================
-function applyCustomLimits() { 
-    renderStationTable(); 
-}
+function applyCustomLimits() { renderStationTable(); }
 
 function renderStationTable() {
     const station = document.getElementById('stationSelect').value;
@@ -532,7 +479,6 @@ async function submitStationScore(athleteId, station) {
     btn.innerText = "Saving...";
     btn.disabled = true;
 
-    // apiSaveScoreToDatabase defined in supabase-api.js!
     const response = await apiSaveScoreToDatabase(athleteId, station, rawValue);
     
     if(response.success) {
@@ -615,7 +561,6 @@ async function saveMileTime(athleteId) {
     btn.style.background = "#94A3B8";
     btn.disabled = true;
 
-    // apiSaveScoreToDatabase defined in supabase-api.js!
     const response = await apiSaveScoreToDatabase(athleteId, "Mile Time", totalSeconds);
     
     if (response.success) {
@@ -641,7 +586,6 @@ function getAvatarHtml(photoUrl) {
     if (!photoUrl) {
         return '<div style="width: 50px; height: 50px; border-radius: 8px; background: #3A4150; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #94A3B8; flex-shrink: 0;">📷</div>';
     }
-    // We will assume Supabase Storage URLs are direct image links
     return `<img src="${photoUrl}" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover; border: 2px solid var(--secondary); flex-shrink: 0;">`;
 }
 
@@ -747,7 +691,6 @@ function editStat(athleteId, category, currentVal) {
     let promptVal = currentVal;
     let placeholder = "";
 
-    // 1. Set Placeholders & Convert existing raw data to "Easy Speak" for the input box
     if (category === 'Mile Time') {
         placeholder = "e.g., 6:30";
         if (currentVal && currentVal !== 'No data') promptVal = formatRawStat(category, currentVal); 
@@ -756,7 +699,6 @@ function editStat(athleteId, category, currentVal) {
         if (currentVal && currentVal !== 'No data') promptVal = formatRawStat(category, currentVal);
     } else if (category.includes('Sprint')) {
         placeholder = "e.g., 4.5";
-        // Strip the 's' so it's a clean number for editing
         if (currentVal && currentVal !== 'No data') promptVal = parseFloat(currentVal).toFixed(2); 
     } else {
         placeholder = "e.g., 3.5";
@@ -769,7 +711,6 @@ function editStat(athleteId, category, currentVal) {
     inputField.placeholder = placeholder;
     inputField.value = (promptVal === 'No data' ? '' : promptVal);
     
-    // Clear the sub-text display
     document.getElementById('editModalFormattedDisplay').innerText = ''; 
     document.getElementById('editModalOverlay').style.display = 'flex';
     inputField.focus();
@@ -781,8 +722,6 @@ function closeEditModal() {
     document.getElementById('editModalFormattedDisplay').innerText = ''; 
 }
 
-// We leave this function intentionally blank so the HTML oninput doesn't throw an error, 
-// but we no longer need the live preview since the coach is typing the natural format!
 function updateModalFormattedDisplay() { }
 
 async function confirmEditStat() {
@@ -795,7 +734,6 @@ async function confirmEditStat() {
 
         let valToSave = newVal;
         
-        // 2. Convert "Easy Speak" back to Raw Data for the Database
         if (editModalCategory === 'Mile Time') {
             let cleanVal = newVal.replace('.', ':'); 
             if (cleanVal.includes(':')) {
@@ -806,13 +744,10 @@ async function confirmEditStat() {
             }
         } 
         else if (editModalCategory.includes('Jump')) {
-            // THE UPGRADE: Added [\d.]+ to capture decimals, and parseFloat for the inches!
-            // This now perfectly handles 8'7.5" or 8' 7.5
             let match = newVal.match(/(\d+)['\s]+([\d.]+)/);
             if (match) {
                 valToSave = (parseInt(match[1]) * 12) + parseFloat(match[2]);
             } else {
-                // Fallback if they just type total raw inches like "103.5"
                 valToSave = parseFloat(newVal);
             }
         } 
@@ -830,7 +765,6 @@ async function confirmEditStat() {
             btn.innerText = "Save";
             btn.disabled = false;
             
-            // Instantly update local data and redraw the profile
             const athlete = globalAthleteData.find(a => a.id === editModalAthleteId);
             if (athlete) athlete.rawStats[editModalCategory] = valToSave; 
             renderProfileStats(athlete); 
@@ -841,5 +775,66 @@ async function confirmEditStat() {
         }
     } else {
         alert("Please enter a value before saving.");
+    }
+}
+
+// ==========================================
+// GLOBAL APP SETTINGS LOGIC
+// ==========================================
+async function fetchAndApplySettings() {
+    const settings = await apiFetchSettings();
+    if (settings) {
+        document.documentElement.style.setProperty('--secondary', settings.theme_color);
+        
+        const colorInput = document.getElementById('settingThemeColor');
+        if (colorInput) {
+            colorInput.value = settings.theme_color;
+            document.getElementById('settingThemeHex').value = settings.theme_color;
+            document.getElementById('settingRequireId').checked = settings.require_student_id;
+            document.getElementById('settingProgramName').value = settings.program_name || '';
+            document.getElementById('settingLogoUrl').value = settings.logo_url || '';
+            
+            // Update the sidebar title to match the program name!
+            const sidebarName = document.getElementById('sidebarSchoolName');
+            if (sidebarName && settings.program_name) {
+                sidebarName.innerHTML = `${settings.program_name}<br><span style="color: var(--secondary); font-size: 14px;">Tryout Manager</span>`;
+            }
+        }
+    }
+}
+
+async function saveAppSettings() {
+    const btn = document.getElementById('btnSaveSettings');
+    btn.innerText = "Saving...";
+    btn.disabled = true;
+
+    const newColor = document.getElementById('settingThemeColor').value;
+    const requireId = document.getElementById('settingRequireId').checked;
+    const programName = document.getElementById('settingProgramName').value.trim();
+    const logoUrl = document.getElementById('settingLogoUrl').value.trim();
+
+    // Call the updated API function
+    const response = await apiSaveSettings(requireId, newColor, programName, logoUrl);
+    
+    if (response.success) {
+        document.documentElement.style.setProperty('--secondary', newColor); 
+        
+        // Update the sidebar title instantly
+        const sidebarName = document.getElementById('sidebarSchoolName');
+        if (sidebarName && programName) {
+            sidebarName.innerHTML = `${programName}<br><span style="color: var(--secondary); font-size: 14px;">Tryout Manager</span>`;
+        }
+
+        btn.innerText = "Saved!";
+        btn.style.background = "var(--accentGreen)";
+        setTimeout(() => {
+            btn.innerText = "Save Settings";
+            btn.style.background = "var(--secondary)";
+            btn.disabled = false;
+        }, 1500);
+    } else {
+        alert("Failed to save settings.");
+        btn.innerText = "Save Settings";
+        btn.disabled = false;
     }
 }
