@@ -38,10 +38,10 @@
     <ul class="nav-links">
       <li><a href="#" onclick="loadView('overview'); return false;" class="active-nav">Dashboard</a></li>
       <li><a href="#" onclick="loadView('photo'); return false;">Photo Check-In</a></li>
-      <li><a href="#" onclick="loadView('mile'); return false;">Mile Time Entry</a></li>
+      <!-- NEW: Added ID to this list item -->
+      <li id="navMileItem"><a href="#" onclick="loadView('mile'); return false;">Mile Time Entry</a></li>
       <li><a href="#" onclick="loadView('station'); return false;">Station Evaluator</a></li>
       <li><a href="#" onclick="loadView('settings'); return false;">⚙️ Settings</a></li>
-    </ul>
     </ul>
   </nav>
 
@@ -323,14 +323,23 @@
                 </div>
               </div>
 
-              <!-- CARD 2: TRYOUT PREFERENCES (Static Box with Blue Border) -->
+              <!-- CARD 2: TRYOUT PREFERENCES -->
               <div style="background: var(--card-bg); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-top: 4px solid var(--accentBlue);">
                 <h4 style="margin-top: 0; color: var(--accentBlue); margin-bottom: 15px;">2. Tryout Preferences</h4>
+                
                 <div style="margin-bottom: 15px;">
                   <label style="font-size: 12px; color: #94A3B8; text-transform: uppercase; font-weight: bold;">Team Names</label>
                   <input type="text" id="settingTeamNames" class="search-box" style="width: 100%; box-sizing: border-box; margin-top: 5px;" placeholder="Varsity, JV, Freshman">
                   <p style="font-size: 12px; color: #94A3B8; margin-top: 5px;">Separate teams with a comma (e.g., 18-1, 18-2, 17-1).</p>
                 </div>
+
+                <!-- NEW: Tryout Groups Input -->
+                <div style="margin-bottom: 15px;">
+                  <label style="font-size: 12px; color: #94A3B8; text-transform: uppercase; font-weight: bold;">Tryout Groups</label>
+                  <input type="text" id="settingTryoutGroups" class="search-box" style="width: 100%; box-sizing: border-box; margin-top: 5px;" placeholder="1, 2, 3">
+                  <p style="font-size: 12px; color: #94A3B8; margin-top: 5px;">Separate groups with a comma (e.g., A, B, C or 1, 2, 3, 4).</p>
+                </div>
+
                 <div style="background: #1A1D24; padding: 15px; border-radius: 8px; border: 1px solid #3A4150;">
                   <label style="display: flex; align-items: center; gap: 10px; color: var(--text-color); cursor: pointer; font-weight: bold; font-size: 15px;">
                     <input type="checkbox" id="settingRequireId" style="width: 20px; height: 20px; accent-color: var(--secondary); cursor: pointer;">
@@ -398,6 +407,19 @@
   </div>
 
   <div id="overlay" class="overlay"></div>
+
+  <!-- Manage Photo Modal -->
+  <div id="photoActionModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box;">
+    <div class="mobile-card" style="width: 100%; max-width: 300px; text-align: center; margin: 0; border-top: 4px solid var(--accentBlue) !important;">
+      <h3 style="margin-top: 0; margin-bottom: 20px; color: var(--text-color);">Manage Photo</h3>
+      
+      <button class="btn-action" style="width: 100%; margin-bottom: 12px; padding: 12px; background: var(--accentBlue); color: white; border: none; font-size: 16px;" onclick="triggerRetakePhoto()">📷 Take New Photo</button>
+      
+      <button class="btn-action" style="width: 100%; margin-bottom: 15px; padding: 12px; background: rgba(239, 68, 68, 0.1); color: var(--color-cut); border: 1px solid var(--color-cut); font-size: 16px;" onclick="removeAthletePhoto()">🗑️ Remove Photo</button>
+      
+      <button class="btn-action" style="width: 100%; padding: 12px; background: #3A4150; color: white; border: none; font-size: 16px;" onclick="closePhotoModal()">Cancel</button>
+    </div>
+  </div>
 
   <!-- ==========================================
        JAVASCRIPT IMPORTS

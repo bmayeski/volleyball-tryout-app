@@ -6,6 +6,7 @@ let allPeerStats = {}; // Stores arrays of all scores for the Bell Curve math
 let currentProfileId = null;
 let currentSelectedStation = "";
 let globalTeamNames = ['Varsity', 'JV', 'Freshman']; // Default fallback
+let globalTryoutGroups = ['1', '2', '3'];
 
 const STATION_CONFIG = {
     "Vertical Jump": { min: 84, max: 120, step: 0.5, default: 90, display: (val) => Math.floor(val/12) + "'" + (val%12) + '"' }, 
@@ -346,7 +347,7 @@ function renderTable(dataToRender) {
               <div style="display: flex; gap: 15px; align-items: flex-start;">
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0;">
                   <div style="font-size: 16px; font-weight: bold; color: ${statusColor};">#${athlete.tryout_number}</div>
-                  ${getAvatarHtml(athlete.photo_url)}
+                  ${getAvatarHtml(athlete.photo_url, athlete.id)}
                 </div>
                 <div style="flex: 1; padding-top: 2px;">
                   <div style="font-weight: bold; font-size: 18px; color: var(--text-color); line-height: 1.2;">${athlete.first_name} ${athlete.last_name}</div>
@@ -378,7 +379,7 @@ function renderAthleteProfile(athleteId) {
     const athlete = globalAthleteData.find(a => a.id === athleteId);
     if (!athlete) return;
     
-    document.getElementById('profilePhotoContainer').innerHTML = getAvatarHtml(athlete.photo_url);
+    document.getElementById('profilePhotoContainer').innerHTML = getAvatarHtml(athlete.photo_url, athlete.id);
     const img = document.getElementById('profilePhotoContainer').querySelector('img, div');
     if (img) { img.style.width = '100px'; img.style.height = '100px'; img.style.fontSize = '40px'; }
     
@@ -511,7 +512,32 @@ async function saveStatus() {
 // ==========================================
 // STATION EVALUATOR
 // ==========================================
-function applyCustomLimits() { renderStationTable(); }
+async function applyCustomLimits() {
+    const station = document.getElementById('stationSelect').value;
+    if (!station) return;
+    
+    const newMin = parseFloat(document.getElementById('customMin').value);
+    const newMax = parseFloat(document.getElementById('customMax').value);
+    
+    if (isNaN(newMin) || isNaN(newMax)) return;
+
+    // 1. Find the metric in the global state
+    const metric = globalMetricsData.find(m => m.name === station);
+    if (!metric) return;
+    
+    // 2. Update locally immediately for a snappy UI
+    metric.min_value = newMin;
+    metric.max_value = newMax;
+    
+    // 3. Re-render the sliders right away
+    renderStationTable();
+    
+    // 4. Send the update to the database in the background
+    const response = await apiUpdateMetricLimits(metric.id, newMin, newMax);
+    if (!response.success) {
+        alert("Failed to save new limits to the database: " + response.error);
+    }
+}
 
 function renderStationTable() {
     const station = document.getElementById('stationSelect').value;
@@ -525,12 +551,16 @@ function renderStationTable() {
         return;
     }
 
-    // --- NEW: Use our smart formatter to grab the exact limits and display format! ---
     const config = getSmartMetricConfig(station);
     const activeMin = config.min;
     const activeMax = config.max;
     
-    if(limitControls) limitControls.style.display = 'none'; 
+    // NEW: Show the controls and populate them with the current metric's bounds
+    if (limitControls) {
+        limitControls.style.display = 'flex';
+        document.getElementById('customMin').value = activeMin;
+        document.getElementById('customMax').value = activeMax;
+    }
     
     const athletesToDisplay = globalAthleteData.filter(a => {
         const notScored = !a[`scored_${station}`];
@@ -583,7 +613,7 @@ function renderStationTable() {
         card.className = 'mobile-card';
         card.innerHTML = 
             `<div class="card-header" style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
-              ${getAvatarHtml(athlete.photo_url)}
+              ${getAvatarHtml(athlete.photo_url, athlete.id)}
               <div style="flex: 1;"><strong style="color: var(--secondary); font-size: 16px;">#${athlete.tryout_number}</strong><br>${athlete.first_name} ${athlete.last_name}</div>
               <div id="display_${athlete.id}" style="text-align: right; font-size: 26px; font-weight: bold; color: var(--accentBlue);">${config.display(startValue, activeMax)}</div>
             </div>
@@ -756,11 +786,14 @@ async function saveRunTime(athleteId) {
 // ==========================================
 // HELPERS
 // ==========================================
-function getAvatarHtml(photoUrl) {
+function getAvatarHtml(photoUrl, athleteId) {
+    // Adds the click listener and stops the card underneath it from opening
+    const clickHandler = athleteId ? `onclick="openPhotoModal(event, '${athleteId}')"` : '';
+    
     if (!photoUrl) {
-        return '<div style="width: 50px; height: 50px; border-radius: 8px; background: #3A4150; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #94A3B8; flex-shrink: 0;">📷</div>';
+        return `<div ${clickHandler} style="width: 50px; height: 50px; border-radius: 8px; background: #3A4150; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #94A3B8; flex-shrink: 0; cursor: pointer; border: 2px dashed #94A3B8;">📷</div>`;
     }
-    return `<img src="${photoUrl}" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover; border: 2px solid var(--secondary); flex-shrink: 0;">`;
+    return `<img src="${photoUrl}" ${clickHandler} style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover; border: 2px solid var(--secondary); flex-shrink: 0; cursor: pointer;">`;
 }
 
 function formatRawStat(metricName, rawVal) {
@@ -810,6 +843,29 @@ function getTeamColor(teamName, index) {
     ];
     
     return palette[index % palette.length];
+}
+
+// Add this helper function anywhere in app.js
+function checkRunViewVisibility() {
+    const navItem = document.getElementById('navMileItem');
+    if (!navItem || !globalMetricsData) return;
+
+    // Check if either running metric exists AND is currently active
+    const mileActive = globalMetricsData.some(m => m.name === "Mile Time" && m.is_active);
+    const halfMileActive = globalMetricsData.some(m => m.name === "Half Mile Time" && m.is_active);
+
+    // Hide or show the sidebar link based on the toggles
+    if (mileActive || halfMileActive) {
+        navItem.style.display = 'block';
+    } else {
+        navItem.style.display = 'none';
+        
+        // If they disable it while actively looking at the Mile view, boot them to Dashboard
+        const mileView = document.getElementById('view-mile');
+        if (mileView && mileView.style.display === 'block') {
+            loadView('overview');
+        }
+    }
 }
 
 // ==========================================
@@ -874,13 +930,68 @@ async function processPhoto(event) {
     if (response.success) {
         const athlete = globalAthleteData.find(a => a.id === athleteId);
         if (athlete) athlete.photo_url = response.url;
-        renderPhotoTable(); 
+        
+        // Use our new smart refresh so the active screen redraws the new image
+        smartRefreshActiveView(athleteId);
     } else {
         alert("Error uploading: " + response.error);
         if (btn) {
             btn.innerText = '📷 Take Photo';
             btn.disabled = false;
         }
+    }
+}
+
+// Helper to redraw the UI without changing screens
+function smartRefreshActiveView(athleteId) {
+    if (document.getElementById('view-photo').style.display === 'block') {
+        renderPhotoTable();
+    } else if (document.getElementById('view-overview').style.display === 'block') {
+        filterTable();
+    } else if (document.getElementById('view-profile').style.display === 'block') {
+        renderAthleteProfile(athleteId);
+    } else if (document.getElementById('view-station').style.display === 'block') {
+        renderStationTable();
+    }
+}
+
+// ==========================================
+// PHOTO MANAGEMENT OVERRIDES
+// ==========================================
+let currentPhotoAthleteId = null;
+
+function openPhotoModal(event, athleteId) {
+    if (event) event.stopPropagation(); // Prevents the Dashboard card from opening the profile
+    currentPhotoAthleteId = athleteId;
+    document.getElementById('photoActionModal').style.display = 'flex';
+}
+
+function closePhotoModal() {
+    document.getElementById('photoActionModal').style.display = 'none';
+    currentPhotoAthleteId = null;
+}
+
+function triggerRetakePhoto() {
+    const athleteId = currentPhotoAthleteId;
+    closePhotoModal();
+    triggerCamera(athleteId); // Reuses your existing camera function!
+}
+
+async function removeAthletePhoto() {
+    if (!currentPhotoAthleteId) return;
+    const athleteId = currentPhotoAthleteId;
+    
+    // 1. Instantly update local UI
+    const athlete = globalAthleteData.find(a => a.id === athleteId);
+    if (athlete) athlete.photo_url = null;
+    
+    closePhotoModal();
+    smartRefreshActiveView(athleteId);
+    
+    // 2. Remove from database
+    const response = await apiUpdateAthleteField(athleteId, 'photo_url', null);
+    if (!response.success) {
+        alert("Failed to remove photo from database.");
     }
 }
 
@@ -1018,6 +1129,9 @@ async function fetchAndApplySettings() {
             document.getElementById('settingLogoUrl').value = settings.logo_url || '';
             document.getElementById('settingTeamNames').value = settings.team_names || 'Varsity, JV, Freshman';
             
+            // NEW: Apply Groups to the Settings Input
+            document.getElementById('settingTryoutGroups').value = settings.tryout_groups || '1, 2, 3';
+            
             const sidebarName = document.getElementById('sidebarSchoolName');
             if (sidebarName && settings.program_name) {
                 sidebarName.innerHTML = `${settings.program_name}<br><span style="color: var(--secondary); font-size: 14px;">Tryout Manager</span>`;
@@ -1025,6 +1139,11 @@ async function fetchAndApplySettings() {
 
             if (settings.team_names) {
                 globalTeamNames = settings.team_names.split(',').map(s => s.trim()).filter(s => s !== '');
+            }
+
+            // NEW: Parse the groups into the global array
+            if (settings.tryout_groups) {
+                globalTryoutGroups = settings.tryout_groups.split(',').map(s => s.trim()).filter(s => s !== '');
             }
 
             const filterStatus = document.getElementById('filterStatus');
@@ -1040,13 +1159,31 @@ async function fetchAndApplySettings() {
                 globalTeamNames.forEach(team => profileStatus.innerHTML += `<option value="${team}">${team}</option>`);
                 profileStatus.innerHTML += `<option value="Cut">Cut</option>`;
             }
+
+            // NEW: Rebuild the Dashboard Group Filter Dropdown
+            const filterGroup = document.getElementById('filterGroup');
+            if (filterGroup) {
+                filterGroup.innerHTML = '<option value="All">All Groups</option>';
+                globalTryoutGroups.forEach(g => filterGroup.innerHTML += `<option value="${g}">${g}</option>`);
+            }
+
+            // NEW: Rebuild the Athlete Profile Group Dropdown
+            const groupSelect = document.getElementById('groupSelect');
+            if (groupSelect) {
+                groupSelect.innerHTML = '';
+                globalTryoutGroups.forEach(g => groupSelect.innerHTML += `<option value="${g}">${g}</option>`);
+                groupSelect.innerHTML += '<option value="Unassigned">Unassigned</option>';
+            }
         }
     }
 
-    // NEW: Fetch and draw the Metrics Toggles!
+    // Fetch and draw the Metrics Toggles!
     globalMetricsData = await apiFetchAllMetrics();
     renderSettingsMetrics();
     populateStationDropdown();
+    
+    // Check if we should hide the Mile Time nav link
+    checkRunViewVisibility();
 }
 
 // Add this right below the `renderSettingsMetrics` function declaration!
@@ -1189,8 +1326,9 @@ async function saveAppSettings() {
     const programName = document.getElementById('settingProgramName').value.trim();
     const logoUrl = document.getElementById('settingLogoUrl').value.trim();
     const teamNames = document.getElementById('settingTeamNames').value.trim();
+    const tryoutGroups = document.getElementById('settingTryoutGroups').value.trim();
 
-    const response = await apiSaveSettings(requireId, newColor, programName, logoUrl, teamNames);
+    const response = await apiSaveSettings(requireId, newColor, programName, logoUrl, teamNames, tryoutGroups);
     
     // 2. Save Metric Toggles & Bounds
     const metricCheckboxes = document.querySelectorAll('input[id^="metric_toggle_"]');

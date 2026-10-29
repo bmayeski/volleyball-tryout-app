@@ -181,14 +181,15 @@ async function apiFetchSettings() {
     }
 }
 
-async function apiSaveSettings(requireId, themeColor, programName, logoUrl, teamNames) {
+async function apiSaveSettings(requireId, themeColor, programName, logoUrl, teamNames, tryoutGroups) {
     try {
         const { error } = await supabaseClient.from('app_settings').update({
             require_student_id: requireId,
             theme_color: themeColor,
             program_name: programName,
             logo_url: logoUrl,
-            team_names: teamNames
+            team_names: teamNames,
+            tryout_groups: tryoutGroups // Maps to your new database column
         }).eq('id', 1);
         if (error) throw error;
         return { success: true };
@@ -219,6 +220,21 @@ async function apiUpdateMetrics(metricsArray) {
         return { success: true };
     } catch (error) {
         console.error("Error updating metrics:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+async function apiUpdateMetricLimits(metricId, minVal, maxVal) {
+    try {
+        const { error } = await supabaseClient
+            .from('evaluation_metrics')
+            .update({ min_value: minVal, max_value: maxVal })
+            .eq('id', metricId);
+            
+        if (error) throw error;
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating metric limits:", error);
         return { success: false, error: error.message };
     }
 }
