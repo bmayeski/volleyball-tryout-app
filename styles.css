@@ -407,3 +407,15 @@ input[type=range]::-webkit-slider-thumb {
   border: 1px solid #3A4150;
   box-sizing: border-box; 
 }
+
+/* ==========================================
+   APP-WIDE ANIMATION OVERRIDES
+   Kills the "bouncy" shrink effect on all cards and buttons
+========================================== */
+.mobile-card:active,
+.stat-card:active,
+.btn-action:active,
+.btn-submit:active,
+.team-splash:active {
+    transform: none !important;
+}

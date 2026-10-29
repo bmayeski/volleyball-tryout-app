@@ -224,12 +224,20 @@ async function apiUpdateMetrics(metricsArray) {
 }
 
 async function apiAddMetric(name, category, measurementType) {
+    // Set some smart default ranges based on the type of metric
+    let min_val = 0;
+    let max_val = 5;
+    if (measurementType === 'inches') { min_val = 0; max_val = 144; } // Up to 12 feet
+    if (measurementType === 'time') { min_val = 0; max_val = 15; }    // Up to 15 seconds
+
     try {
         const { data, error } = await supabaseClient.from('evaluation_metrics')
             .insert([{ 
                 name: name, 
                 category: category, 
                 measurement_type: measurementType, 
+                min_value: min_val,
+                max_value: max_val,
                 is_active: true 
             }])
             .select().single();

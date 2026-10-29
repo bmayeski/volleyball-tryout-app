@@ -11,13 +11,62 @@ const STATION_CONFIG = {
     "Vertical Jump": { min: 84, max: 120, step: 0.5, default: 90, display: (val) => Math.floor(val/12) + "'" + (val%12) + '"' }, 
     "Sprint Time": { min: 4.0, max: 8.0, step: 0.1, default: 5.5, display: (val) => parseFloat(val).toFixed(1) + "s" },
     "Triple Jump": { min: 120, max: 360, step: 1, default: 240, display: (val) => Math.floor(val/12) + "'" + (val%12) + '"' }, 
-    "Passing": { min: 0.5, max: 5, step: 0.5, default: 3, display: (val, max) => Number(val).toFixed(1) + " / " + max },
-    "Serving": { min: 0.5, max: 5, step: 0.5, default: 3, display: (val, max) => Number(val).toFixed(1) + " / " + max },
-    "Hitting": { min: 0.5, max: 5, step: 0.5, default: 3, display: (val, max) => Number(val).toFixed(1) + " / " + max },
-    "Setting": { min: 0.5, max: 5, step: 0.5, default: 3, display: (val, max) => Number(val).toFixed(1) + " / " + max },
-    "Defense": { min: 0.5, max: 5, step: 0.5, default: 3, display: (val, max) => Number(val).toFixed(1) + " / " + max },
-    "Receive": { min: 0.5, max: 5, step: 0.5, default: 3, display: (val, max) => Number(val).toFixed(1) + " / " + max }
+    "Passing": { min: 0, max: 5, step: 0.5, default: 2.5, display: (val, max) => Number(val).toFixed(1) + " / " + max },
+    "Serving": { min: 0, max: 5, step: 0.5, default: 2.5, display: (val, max) => Number(val).toFixed(1) + " / " + max },
+    "Hitting": { min: 0, max: 5, step: 0.5, default: 2.5, display: (val, max) => Number(val).toFixed(1) + " / " + max },
+    "Setting": { min: 0, max: 5, step: 0.5, default: 2.5, display: (val, max) => Number(val).toFixed(1) + " / " + max },
+    "Defense": { min: 0, max: 5, step: 0.5, default: 2.5, display: (val, max) => Number(val).toFixed(1) + " / " + max },
+    "Receive": { min: 0, max: 5, step: 0.5, default: 2.5, display: (val, max) => Number(val).toFixed(1) + " / " + max }
 };
+
+// NEW: Smart Metric Formatter Helper
+// Automatically formats numbers into MM:SS, Inches, Percentages, etc.
+function getSmartMetricConfig(stationName) {
+    const dbMetric = globalMetricsData.find(m => m.name === stationName);
+    
+    // Grab base config if it exists, otherwise set a baseline
+    let config = STATION_CONFIG[stationName] ? { ...STATION_CONFIG[stationName] } : { min: 0, max: 5, step: 0.5 };
+    
+    if (dbMetric) {
+        // Override bounds with your database Settings
+        if (dbMetric.min_value !== null) config.min = parseFloat(dbMetric.min_value);
+        if (dbMetric.max_value !== null) config.max = parseFloat(dbMetric.max_value);
+        
+        // Smart Formatting based on the measurement type
+        if (dbMetric.measurement_type === 'time') {
+            config.display = (v) => {
+                if (config.max >= 60) {
+                    const mins = Math.floor(v / 60);
+                    const secs = Math.floor(v % 60).toString().padStart(2, '0');
+                    return `${mins}:${secs}`;
+                }
+                return Number(v).toFixed(1) + "s";
+            };
+            if (config.max >= 60) config.step = 1; // Snap to whole seconds for long runs
+        } else if (dbMetric.measurement_type === 'inches') {
+            config.display = (v) => Math.floor(v/12) + "'" + (v%12) + '"';
+            config.step = 1;
+        } else if (dbMetric.measurement_type === 'count') {
+            config.display = (v) => Math.round(v) + " reps";
+            config.step = 1;
+        } else if (dbMetric.measurement_type === 'percentage') {
+            config.display = (v) => Math.round(v) + "%";
+            config.step = 1;
+        } else if (dbMetric.measurement_type === 'mph') {
+            config.display = (v) => Math.round(v) + " mph";
+            config.step = 1;
+        } else {
+            config.display = (v, m) => Number(v).toFixed(1) + " / " + m;
+        }
+    }
+    
+    // Default the slider to start exactly in the middle
+    if (config.default === undefined) {
+        config.default = config.min + ((config.max - config.min) / 2);
+    }
+    
+    return config;
+}
 
 // ==========================================
 // INITIALIZATION & ROUTING
@@ -95,36 +144,43 @@ function loadView(viewName) {
 async function fetchAndRenderDashboard() {
     document.getElementById('dashboardCardContainer').innerHTML = '<div style="padding: 40px; text-align: center; color: #94A3B8;">Loading athlete data...</div>';
     
+    // Ensure metrics are loaded BEFORE trying to calculate scores
+    if (globalMetricsData.length === 0) {
+        globalMetricsData = await apiFetchAllMetrics();
+    }
+
     const response = await apiFetchDashboardData(); 
     
     if (!response) {
-        document.getElementById('dashboardCardContainer').innerHTML = '<div style="padding: 40px; text-align: center; color: #EF4444;">Failed to load data. Please check your connection.</div>';
+        document.getElementById('dashboardCardContainer').innerHTML = '<div style="padding: 40px; text-align: center; color: #EF4444;">Failed to load data.</div>';
         return;
     }
 
     const data = response.athletes;
     allPeerStats = response.allStats; 
 
-    const athleticismCategories = ['Vertical Jump', 'Sprint Time', 'Triple Jump', 'Mile Time'];
-    const skillsCategories = ['Passing', 'Serving', 'Hitting', 'Setting', 'Defense', 'Receive'];
+    // DYNAMIC GROUPS: Build these arrays straight from your Database
+    const activeMetrics = globalMetricsData.filter(m => m.is_active);
+    const athleticismCategories = activeMetrics.filter(m => m.category === 'Athleticism').map(m => m.name);
+    const skillsCategories = activeMetrics.filter(m => m.category === 'Volleyball Skills').map(m => m.name);
 
     data.forEach(athlete => {
         let athTotal = 0, athCount = 0;
         let skillTotal = 0, skillCount = 0;
 
-        athleticismCategories.forEach(cat => {
-            let rawVal = athlete.rawStats[cat];
+        athleticismCategories.forEach(metric => {
+            let rawVal = athlete.rawStats[metric];
             if (rawVal !== undefined && rawVal !== null) {
-                let curvedScore = calculateBellCurveScore(cat, rawVal, allPeerStats[cat] || []);
+                let curvedScore = calculateBellCurveScore(metric, rawVal, allPeerStats[metric] || []);
                 let numScore = parseFloat(curvedScore);
                 if (!isNaN(numScore)) { athTotal += numScore; athCount++; }
             }
         });
 
-        skillsCategories.forEach(cat => {
-            let rawVal = athlete.rawStats[cat];
+        skillsCategories.forEach(metric => {
+            let rawVal = athlete.rawStats[metric];
             if (rawVal !== undefined && rawVal !== null) {
-                let curvedScore = calculateBellCurveScore(cat, rawVal, allPeerStats[cat] || []);
+                let curvedScore = calculateBellCurveScore(metric, rawVal, allPeerStats[metric] || []);
                 let numScore = parseFloat(curvedScore);
                 if (!isNaN(numScore)) { skillTotal += numScore; skillCount++; }
             }
@@ -136,7 +192,6 @@ async function fetchAndRenderDashboard() {
     });
 
     globalAthleteData = data;
-
     updateStatCards(data);
     renderTable(globalAthleteData);
 }
@@ -343,14 +398,16 @@ function renderProfileStats(athlete) {
     loading.style.display = 'none';
     grid.style.display = 'block';
     
-    const athleticismCategories = ['Vertical Jump', 'Sprint Time', 'Triple Jump', 'Mile Time'];
-    const skillsCategories = ['Passing', 'Serving', 'Hitting', 'Setting', 'Defense', 'Receive'];
+    // DYNAMIC GROUPS
+    const activeMetrics = globalMetricsData.filter(m => m.is_active);
+    const athleticismCategories = activeMetrics.filter(m => m.category === 'Athleticism').map(m => m.name);
+    const skillsCategories = activeMetrics.filter(m => m.category === 'Volleyball Skills').map(m => m.name);
 
     let athleticismHtml = '';
     let skillsHtml = '';
 
-    const buildCardHtml = (category) => {
-        let rawVal = athlete.rawStats[category];
+    const buildCardHtml = (metricName) => {
+        let rawVal = athlete.rawStats[metricName];
         let hasData = (rawVal !== undefined && rawVal !== null);
         
         let curvedScore = '-';
@@ -358,18 +415,22 @@ function renderProfileStats(athlete) {
         let editVal = '';
         
         if (hasData) {
-            curvedScore = calculateBellCurveScore(category, rawVal, allPeerStats[category] || []);
-            displayVal = formatRawStat(category, rawVal);
+            curvedScore = calculateBellCurveScore(metricName, rawVal, allPeerStats[metricName] || []);
+            displayVal = formatRawStat(metricName, rawVal);
             editVal = rawVal;
         }
 
         let rawHtml = '';
-        if (athleticismCategories.includes(category)) {
+        const metricDef = globalMetricsData.find(m => m.name === metricName);
+        const isScale = metricDef ? metricDef.measurement_type === 'scale_0_to_5' : false;
+
+        // Show the raw value below the score if it's NOT a standard 0-5 scale
+        if (!isScale) {
              rawHtml = `<div style="font-size: 13px; color: #94A3B8; margin-bottom: 10px;">Raw: ${displayVal}</div>`;
         }
 
-        return `<div onclick="editStat('${athlete.id}', '${category}', '${editVal}')" style="background: var(--bg-color); padding: 12px; border-radius: 8px; border: 1px solid #3A4150; text-align: center; position: relative; cursor: pointer; transition: 0.2s;">
-            <div style="font-size: 11px; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px;">${category}</div>
+        return `<div onclick="editStat('${athlete.id}', '${metricName}', '${editVal}')" style="background: var(--bg-color); padding: 12px; border-radius: 8px; border: 1px solid #3A4150; text-align: center; position: relative; cursor: pointer; transition: 0.2s;">
+            <div style="font-size: 11px; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px;">${metricName}</div>
             <div style="font-size: 26px; font-weight: bold; color: var(--secondary); margin: 4px 0;">${curvedScore}<span style="font-size: 14px; color:#94A3B8; font-weight: normal;"> / 5</span></div>
             ${rawHtml}
             <div style="font-size: 10px; color: var(--accentBlue); margin-top: 5px;">✎ Edit</div>
@@ -454,31 +515,22 @@ function applyCustomLimits() { renderStationTable(); }
 
 function renderStationTable() {
     const station = document.getElementById('stationSelect').value;
-    const searchInput = document.getElementById('stationSearch')?.value.toLowerCase().trim() || '';
     const container = document.getElementById('stationCardContainer');
+    const searchInput = document.getElementById('stationSearch').value.toLowerCase();
     const limitControls = document.getElementById('limitControls');
-    const customMinInput = document.getElementById('customMin');
-    const customMaxInput = document.getElementById('customMax');
     
-    if(!container) return;
-    
-    if(!station) {
+    if (!station) {
+        container.innerHTML = '<div style="text-align:center; padding: 40px; color: #94A3B8;">Select a station above to begin evaluating.</div>';
         if(limitControls) limitControls.style.display = 'none';
-        container.innerHTML = '<div style="text-align: center; padding: 40px; color: #94A3B8;">Please select a Station to begin.</div>';
         return;
     }
+
+    // --- NEW: Use our smart formatter to grab the exact limits and display format! ---
+    const config = getSmartMetricConfig(station);
+    const activeMin = config.min;
+    const activeMax = config.max;
     
-    const config = STATION_CONFIG[station] || { min: 1, max: 5, step: 0.5, default: 3, display: (v, m) => Number(v).toFixed(1) + " / " + m };
-    if (currentSelectedStation !== station) {
-        if(customMinInput) customMinInput.value = config.min;
-        if(customMaxInput) customMaxInput.value = config.max;
-        currentSelectedStation = station;
-    }
-    
-    const activeMin = customMinInput ? parseFloat(customMinInput.value) : config.min;
-    const activeMax = customMaxInput ? parseFloat(customMaxInput.value) : config.max;
-    
-    if(limitControls) limitControls.style.display = 'flex';
+    if(limitControls) limitControls.style.display = 'none'; 
     
     const athletesToDisplay = globalAthleteData.filter(a => {
         const notScored = !a[`scored_${station}`];
@@ -506,24 +558,53 @@ function renderStationTable() {
         if (startValue < activeMin) startValue = activeMin;
         if (startValue > activeMax) startValue = activeMax;
         
+        // --- NEW: Generate Dynamic Slider Track Labels ---
+        let tickLabels = '';
+        const range = activeMax - activeMin;
+        
+        if (range <= 10) {
+            // For 0-5 scales: show every whole number perfectly spaced
+            let spans = '';
+            for(let i = Math.ceil(activeMin); i <= Math.floor(activeMax); i++) {
+                spans += `<span>${i}</span>`;
+            }
+            tickLabels = `<div style="display: flex; justify-content: space-between; padding: 0 4px; color: #94A3B8; font-size: 12px; margin-top: 2px; margin-bottom: 12px; font-weight: bold;">${spans}</div>`;
+        } else {
+            // For large athletic scales (inches/time): show Min, Middle, and Max
+            const mid = activeMin + (range / 2);
+            tickLabels = `<div style="display: flex; justify-content: space-between; padding: 0 4px; color: #94A3B8; font-size: 11px; margin-top: 2px; margin-bottom: 12px;">
+                            <span>${config.display(activeMin, activeMax).split(' ')[0]}</span>
+                            <span>${config.display(mid, activeMax).split(' ')[0]}</span>
+                            <span>${config.display(activeMax, activeMax).split(' ')[0]}</span>
+                          </div>`;
+        }
+        
         const card = document.createElement('div');
         card.className = 'mobile-card';
         card.innerHTML = 
-            `<div class="card-header" style="display: flex; align-items: center; gap: 15px;">
+            `<div class="card-header" style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
               ${getAvatarHtml(athlete.photo_url)}
               <div style="flex: 1;"><strong style="color: var(--secondary); font-size: 16px;">#${athlete.tryout_number}</strong><br>${athlete.first_name} ${athlete.last_name}</div>
-              <div id="display_${athlete.id}" style="text-align: right; font-size: 22px; font-weight: bold; color: var(--accentBlue);">${config.display(startValue, activeMax)}</div>
+              <div id="display_${athlete.id}" style="text-align: right; font-size: 26px; font-weight: bold; color: var(--accentBlue);">${config.display(startValue, activeMax)}</div>
             </div>
-            <input type="range" id="slider_${athlete.id}" min="${activeMin}" max="${activeMax}" step="${config.step}" value="${startValue}" oninput="updateSliderDisplay('${athlete.id}', '${station}', this.value)">
+            
+            <!-- Thicker slider for mobile thumbs -->
+            <input type="range" id="slider_${athlete.id}" min="${activeMin}" max="${activeMax}" step="${config.step}" value="${startValue}" oninput="updateSliderDisplay('${athlete.id}', '${station}', this.value)" style="width: 100%; height: 12px; accent-color: var(--secondary); cursor: pointer;">
+            
+            <!-- Inject the visual labels directly beneath the slider -->
+            ${tickLabels}
+            
             <button class="btn-action" id="btnStat_${athlete.id}" onclick="submitStationScore('${athlete.id}', '${station}')" style="width: 100%; padding: 14px; font-size: 16px; margin-top: 5px;">Save Score</button>`;
         container.appendChild(card);
     });
 }
 
-function updateSliderDisplay(athleteId, station, rawValue) {
-    const config = STATION_CONFIG[station] || { display: (v, m) => Number(v).toFixed(1) + " / " + m };
-    const activeMax = document.getElementById('customMax').value;
-    document.getElementById(`display_${athleteId}`).innerText = config.display(rawValue, activeMax);
+function updateSliderDisplay(athleteId, station, val) {
+    const config = getSmartMetricConfig(station);
+    const displayDiv = document.getElementById(`display_${athleteId}`);
+    if (displayDiv) {
+        displayDiv.innerText = config.display(val, config.max);
+    }
 }
 
 async function submitStationScore(athleteId, station) {
@@ -553,6 +634,37 @@ function filterMileTable() {
     renderMileTable(globalAthleteData);
 }
 
+// Add this near the top of app.js with your other GLOBAL STATE variables
+let currentRunMode = "Mile Time";
+
+// Add this function to handle the UI toggle switch
+function setRunMode(mode) {
+    currentRunMode = mode;
+
+    // Update Toggle Button Styles
+    const btnMile = document.getElementById('btnToggleMile');
+    const btnHalf = document.getElementById('btnToggleHalf');
+
+    if (mode === 'Mile Time') {
+        btnMile.style.background = 'var(--secondary)';
+        btnMile.style.color = 'white';
+        btnHalf.style.background = 'transparent';
+        btnHalf.style.color = '#94A3B8';
+    } else {
+        btnHalf.style.background = 'var(--secondary)';
+        btnHalf.style.color = 'white';
+        btnMile.style.background = 'transparent';
+        btnMile.style.color = '#94A3B8';
+    }
+
+    // Update Table Header
+    document.getElementById('runTimeHeader').innerText = mode;
+
+    // Re-render the table with unscored athletes for the new mode
+    filterMileTable();
+}
+
+// Update your existing renderMileTable function
 function renderMileTable(dataToRender) {
     const container = document.getElementById('mileTableBody');
     if (!container) return; 
@@ -561,8 +673,10 @@ function renderMileTable(dataToRender) {
     const searchTerm = document.getElementById('mileSearch')?.value.toLowerCase() || '';
 
     const athletesToDisplay = dataToRender.filter(a => {
-        const savedNow = a.mileTimeSaved === true;
-        const savedInDB = a.rawStats && a.rawStats['Mile Time'] !== undefined && a.rawStats['Mile Time'] !== null;
+        // Create a dynamic flag key (e.g., 'MileTimeSaved' or 'HalfMileTimeSaved')
+        const flagKey = currentRunMode.replace(/\s+/g, '') + 'Saved';
+        const savedNow = a[flagKey] === true;
+        const savedInDB = a.rawStats && a.rawStats[currentRunMode] !== undefined && a.rawStats[currentRunMode] !== null;
         
         const matchesSearch = a.first_name.toLowerCase().includes(searchTerm) || 
                               a.last_name.toLowerCase().includes(searchTerm) || 
@@ -574,7 +688,7 @@ function renderMileTable(dataToRender) {
     athletesToDisplay.sort((a, b) => parseInt(a.tryout_number) - parseInt(b.tryout_number));
 
     if (athletesToDisplay.length === 0) {
-        container.innerHTML = '<tr><td colspan="4" style="padding: 20px; text-align: center; color: var(--accentGreen); font-weight: bold;">All athletes have recorded times!</td></tr>';
+        container.innerHTML = `<tr><td colspan="4" style="padding: 20px; text-align: center; color: var(--accentGreen); font-weight: bold;">All athletes have recorded ${currentRunMode.toLowerCase()}s!</td></tr>`;
         return;
     }
 
@@ -587,17 +701,18 @@ function renderMileTable(dataToRender) {
                <div style="font-size: 12px; color: #94A3B8;">Grp ${athlete.tryout_group || 'N/A'} • ${athlete.grade}th</div>
              </td>
              <td>
-               <input type="text" id="mileTime_${athlete.id}" placeholder="MM:SS" style="width: 70px; padding: 8px; border-radius: 6px; border: 1px solid #3A4150; background: var(--primary); color: white; text-align: center;">
+               <input type="text" id="runTime_${athlete.id}" placeholder="MM:SS" style="width: 70px; padding: 8px; border-radius: 6px; border: 1px solid #3A4150; background: var(--primary); color: white; text-align: center;">
              </td>
              <td>
-               <button onclick="saveMileTime('${athlete.id}')" class="btn-action" style="background: var(--accentBlue); color: white;">Save</button>
+               <button onclick="saveRunTime('${athlete.id}')" class="btn-action" style="background: var(--accentBlue); color: white;">Save</button>
              </td>`;
         container.appendChild(row);
     });
 }
 
-async function saveMileTime(athleteId) {
-    const inputField = document.getElementById(`mileTime_${athleteId}`);
+// Rename saveMileTime to saveRunTime and make it dynamic
+async function saveRunTime(athleteId) {
+    const inputField = document.getElementById(`runTime_${athleteId}`);
     let timeValue = inputField.value.trim().replace('.', ':');
     
     if (!timeValue || !timeValue.includes(':')) {
@@ -615,14 +730,19 @@ async function saveMileTime(athleteId) {
     btn.style.background = "#94A3B8";
     btn.disabled = true;
 
-    const response = await apiSaveScoreToDatabase(athleteId, "Mile Time", totalSeconds);
+    // Use currentRunMode instead of "Mile Time"
+    const response = await apiSaveScoreToDatabase(athleteId, currentRunMode, totalSeconds);
     
     if (response.success) {
         btn.innerText = "Saved!";
         btn.style.background = "var(--accentGreen)";
         setTimeout(() => { 
             const athlete = globalAthleteData.find(a => a.id === athleteId);
-            if (athlete) athlete.mileTimeSaved = true; 
+            if (athlete) {
+                // Set dynamic flag so they vanish from the active list
+                const flagKey = currentRunMode.replace(/\s+/g, '') + 'Saved';
+                athlete[flagKey] = true; 
+            }
             filterMileTable(); 
         }, 1000);
     } else {
@@ -643,20 +763,14 @@ function getAvatarHtml(photoUrl) {
     return `<img src="${photoUrl}" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover; border: 2px solid var(--secondary); flex-shrink: 0;">`;
 }
 
-function formatRawStat(category, rawVal) {
+function formatRawStat(metricName, rawVal) {
     if (rawVal === undefined || rawVal === null) return 'No data';
-    if (category === 'Mile Time') {
-        let m = Math.floor(parseFloat(rawVal) / 60);
-        let s = Math.round(parseFloat(rawVal) % 60);
-        return m + ':' + (s < 10 ? '0' : '') + s;
+    
+    // Leverage the smart configuration from your database settings
+    const config = getSmartMetricConfig(metricName);
+    if (config && config.display) {
+        return config.display(rawVal, config.max);
     }
-    if (category.includes('Vertical') || category.includes('Triple Jump')) {
-        let val = parseFloat(rawVal);
-        let feet = Math.floor(val / 12);
-        let inches = val % 12;
-        return feet + "'" + inches + '"';
-    }
-    if (category.includes('Sprint')) return parseFloat(rawVal).toFixed(2) + 's';
     return rawVal; 
 }
 
@@ -780,20 +894,28 @@ function editStat(athleteId, category, currentVal) {
     editModalAthleteId = athleteId;
     editModalCategory = category;
 
-    let promptVal = currentVal;
-    let placeholder = "";
+    // 1. Fetch metric configuration from the database data
+    const metricDef = globalMetricsData.find(m => m.name === category);
+    const mType = metricDef ? metricDef.measurement_type : 'unknown';
+    const isLongTime = mType === 'time' && metricDef && metricDef.max_value >= 60; // For minutes/seconds
 
-    if (category === 'Mile Time') {
+    let promptVal = currentVal;
+    let placeholder = "e.g., 3.5"; // Default
+
+    // 2. Set dynamic placeholders and formatting based on measurement type
+    if (mType === 'time' && isLongTime) {
         placeholder = "e.g., 6:30";
         if (currentVal && currentVal !== 'No data') promptVal = formatRawStat(category, currentVal); 
-    } else if (category.includes('Jump')) {
+    } else if (mType === 'inches') {
         placeholder = "e.g., 8'11\"";
         if (currentVal && currentVal !== 'No data') promptVal = formatRawStat(category, currentVal);
-    } else if (category.includes('Sprint')) {
+    } else if (mType === 'time') { // Short time (sprints)
         placeholder = "e.g., 4.5";
         if (currentVal && currentVal !== 'No data') promptVal = parseFloat(currentVal).toFixed(2); 
+    } else if (mType === 'percentage') {
+        placeholder = "e.g., 85";
+        if (currentVal && currentVal !== 'No data') promptVal = Math.round(currentVal);
     } else {
-        placeholder = "e.g., 3.5";
         if (currentVal && currentVal !== 'No data') promptVal = currentVal;
     }
 
@@ -824,9 +946,15 @@ async function confirmEditStat() {
         btn.innerText = "Saving...";
         btn.disabled = true;
 
+        // 1. Fetch metric configuration
+        const metricDef = globalMetricsData.find(m => m.name === editModalCategory);
+        const mType = metricDef ? metricDef.measurement_type : 'unknown';
+        const isLongTime = mType === 'time' && metricDef && metricDef.max_value >= 60;
+
         let valToSave = newVal;
         
-        if (editModalCategory === 'Mile Time') {
+        // 2. Parse the input value dynamically based on measurement type
+        if (mType === 'time' && isLongTime) {
             let cleanVal = newVal.replace('.', ':'); 
             if (cleanVal.includes(':')) {
                 let parts = cleanVal.split(':');
@@ -835,16 +963,17 @@ async function confirmEditStat() {
                 valToSave = parseFloat(cleanVal); 
             }
         } 
-        else if (editModalCategory.includes('Jump')) {
-            let match = newVal.match(/(\d+)['\s]+([\d.]+)/);
+        else if (mType === 'inches') {
+            let match = newVal.match(/(\d+)['\s]+([\d.]+)/); // Checks for 8'11 formats
             if (match) {
                 valToSave = (parseInt(match[1]) * 12) + parseFloat(match[2]);
             } else {
                 valToSave = parseFloat(newVal);
             }
         } 
-        else if (editModalCategory.includes('Sprint')) {
-            valToSave = parseFloat(newVal.replace(/s/i, '')); 
+        else if (mType === 'time' || mType === 'mph' || mType === 'percentage' || mType === 'count') {
+            // Strip out letters or symbols (s, mph, %, etc.) in case the user typed them
+            valToSave = parseFloat(newVal.replace(/[a-zA-Z%]/g, '')); 
         }
         else {
             valToSave = parseFloat(newVal); 
@@ -942,14 +1071,22 @@ function renderSettingsMetrics() {
         
         metrics.forEach(m => {
             html += `
-            <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #2A303C;">
-              <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #E2E8F0; font-size: 14px; flex: 1;">
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #2A303C; flex-wrap: wrap; gap: 10px;">
+              <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #E2E8F0; font-size: 14px; flex: 1; min-width: 140px;">
                 <input type="checkbox" id="metric_toggle_${m.id}" data-id="${m.id}" style="width: 18px; height: 18px; accent-color: var(--secondary);" ${m.is_active ? 'checked' : ''}>
                 ${m.name}
               </label>
-              <div style="display: flex; gap: 15px;">
-                <button onclick="renameMetric('${m.id}', '${m.name}')" style="background: transparent; border: none; color: var(--accentBlue); cursor: pointer; font-size: 14px;" title="Rename">✎</button>
-                <button onclick="deleteMetric('${m.id}')" style="background: transparent; border: none; color: var(--color-cut); cursor: pointer; font-size: 14px;" title="Delete">🗑</button>
+              
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 11px; color: #94A3B8;">Min:</span>
+                <input type="number" id="metric_min_${m.id}" value="${m.min_value !== null ? m.min_value : 0}" class="search-box" style="width: 50px; padding: 4px; font-size: 12px; text-align: center;">
+                <span style="font-size: 11px; color: #94A3B8;">Max:</span>
+                <input type="number" id="metric_max_${m.id}" value="${m.max_value !== null ? m.max_value : 5}" class="search-box" style="width: 50px; padding: 4px; font-size: 12px; text-align: center;">
+                
+                <div style="display: flex; gap: 10px; margin-left: 10px;">
+                  <button onclick="renameMetric('${m.id}', '${m.name}')" style="background: transparent; border: none; color: var(--accentBlue); cursor: pointer; font-size: 14px;" title="Rename">✎</button>
+                  <button onclick="deleteMetric('${m.id}')" style="background: transparent; border: none; color: var(--color-cut); cursor: pointer; font-size: 14px;" title="Delete">🗑</button>
+                </div>
               </div>
             </div>`;
         });
@@ -1017,7 +1154,13 @@ function populateStationDropdown() {
     const select = document.getElementById('stationSelect');
     if(!select) return;
     
-    const activeMetrics = globalMetricsData.filter(m => m.is_active);
+    // Filter out inactive metrics AND our specific running metrics
+    const activeMetrics = globalMetricsData.filter(m => 
+        m.is_active && 
+        m.name !== "Mile Time" && 
+        m.name !== "Half Mile Time"
+    );
+    
     let html = '<option value="">-- Select Station --</option>';
     
     const categories = {};
@@ -1049,7 +1192,7 @@ async function saveAppSettings() {
 
     const response = await apiSaveSettings(requireId, newColor, programName, logoUrl, teamNames);
     
-    // 2. Save Metric Toggles
+    // 2. Save Metric Toggles & Bounds
     const metricCheckboxes = document.querySelectorAll('input[id^="metric_toggle_"]');
     let updatedMetrics = [];
     metricCheckboxes.forEach(cb => {
@@ -1060,7 +1203,10 @@ async function saveAppSettings() {
                 id: metric.id,
                 name: metric.name,
                 category: metric.category,
-                is_active: cb.checked
+                measurement_type: metric.measurement_type, // <-- THE FIX: Included to satisfy the database rule!
+                is_active: cb.checked,
+                min_value: parseFloat(document.getElementById(`metric_min_${id}`).value) || 0,
+                max_value: parseFloat(document.getElementById(`metric_max_${id}`).value) || 5
             });
         }
     });
