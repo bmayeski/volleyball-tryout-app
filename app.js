@@ -145,24 +145,55 @@ function updateStatCards(data) {
     const statGrid = document.getElementById('statGrid');
     if (!statGrid) return;
 
-    // 1. Total & Pending (Added onclick and cursor pointer)
-    let html = `<div class="stat-card" style="cursor: pointer;" onclick="filterByCard('All')"><span class="stat-title">Total</span><span class="stat-value">${data.length}</span></div>`;
+    // Compact styles to override your main CSS file
+    const compactCardStyle = "cursor: pointer; padding: 8px 4px; min-height: auto; text-align: center;";
+    const titleStyle = "font-size: 9px; margin-bottom: 4px; display: block; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;";
+    const valueStyle = "font-size: 20px; font-weight: bold; line-height: 1;";
+
+    // 1. Total & Pending
+    let html = `<div class="stat-card" style="${compactCardStyle}" onclick="filterByCard('All')">
+                  <span class="stat-title" style="${titleStyle}">Total</span>
+                  <span class="stat-value" style="${valueStyle}">${data.length}</span>
+                </div>`;
     
     const evaluatingCount = data.filter(a => a.status === 'Evaluating' || !a.status).length;
-    html += `<div class="stat-card" style="border-top-color: var(--color-eval); cursor: pointer;" onclick="filterByCard('Evaluating')"><span class="stat-title">Pending</span><span class="stat-value">${evaluatingCount}</span></div>`;
+    html += `<div class="stat-card" style="border-top-color: var(--color-eval); ${compactCardStyle}" onclick="filterByCard('Evaluating')">
+               <span class="stat-title" style="${titleStyle}">Pending</span>
+               <span class="stat-value" style="${valueStyle}">${evaluatingCount}</span>
+             </div>`;
 
     // 2. Dynamic Teams 
     globalTeamNames.forEach((team, index) => {
         const count = data.filter(a => a.status === team).length;
         const teamColor = getTeamColor(team, index);
-        html += `<div class="stat-card" style="border-top-color: ${teamColor}; cursor: pointer;" onclick="filterByCard('${team}')"><span class="stat-title">${team}</span><span class="stat-value">${count}</span></div>`;
+        html += `<div class="stat-card" style="border-top-color: ${teamColor}; ${compactCardStyle}" onclick="filterByCard('${team}')" title="${team}">
+                   <span class="stat-title" style="${titleStyle}">${team}</span>
+                   <span class="stat-value" style="${valueStyle}">${count}</span>
+                 </div>`;
     });
 
     // 3. Cuts
     const cutCount = data.filter(a => a.status === 'Cut').length;
-    html += `<div class="stat-card" style="border-top-color: var(--color-cut); cursor: pointer;" onclick="filterByCard('Cut')"><span class="stat-title">Cuts</span><span class="stat-value">${cutCount}</span></div>`;
+    html += `<div class="stat-card" style="border-top-color: var(--color-cut); ${compactCardStyle}" onclick="filterByCard('Cut')">
+               <span class="stat-title" style="${titleStyle}">Cuts</span>
+               <span class="stat-value" style="${valueStyle}">${cutCount}</span>
+             </div>`;
 
     statGrid.innerHTML = html;
+}
+
+// NEW: Toggles the visibility of the Team Breakdown grid
+function toggleStatGrid() {
+    const grid = document.getElementById('statGrid');
+    const icon = document.getElementById('statGridIcon');
+    
+    if (grid.style.display === 'none') {
+        grid.style.display = 'grid';
+        icon.innerText = '▼';
+    } else {
+        grid.style.display = 'none';
+        icon.innerText = '▶';
+    }
 }
 
 function filterByCard(statusValue) {

@@ -63,15 +63,19 @@
       ========================================== -->
       <div id="view-overview" class="app-view" style="display: block;">
         <div class="dashboard-wrapper">
-          <div class="stat-grid" id="statGrid">
+          
+          <!-- NEW: Clickable Collapsible Header -->
+          <div id="statGridHeader" onclick="toggleStatGrid()" style="display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 12px 16px; border-radius: 8px; margin-bottom: 12px; cursor: pointer; border: 1px solid #3A4150;">
+            <h3 style="margin: 0; font-size: 14px; color: var(--text-color); text-transform: uppercase; letter-spacing: 0.5px;">📊 Team Breakdown</h3>
+            <span id="statGridIcon" style="color: #94A3B8; font-size: 12px;">▼</span>
+          </div>
+
+          <!-- UPDATED: Tighter 3-to-4 Column Grid -->
+          <div class="stat-grid" id="statGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); gap: 8px; margin-bottom: 16px;">
             <div class="stat-card loading">Loading stats...</div>
           </div>
         
           <div class="table-container" style="background: transparent; box-shadow: none; padding: 0;">
-            <div class="table-header" style="background: var(--card-bg); padding: 16px; border-radius: 12px; margin-bottom: 16px;">
-              <h3 style="margin: 0 0 10px 0;">Athlete Roster</h3>
-              <input type="text" id="dashboardSearch" class="search-box" style="max-width: 100%;" placeholder="Search by name, #, or position..." onkeyup="filterTable()">
-            </div>
         
             <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border: 1px solid #3A4150;">
               <select id="filterGroup" class="search-box" onchange="filterTable()">
