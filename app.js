@@ -145,22 +145,32 @@ function updateStatCards(data) {
     const statGrid = document.getElementById('statGrid');
     if (!statGrid) return;
 
-    // 1. Total & Pending
-    let html = `<div class="stat-card"><span class="stat-title">Total</span><span class="stat-value">${data.length}</span></div>`;
+    // 1. Total & Pending (Added onclick and cursor pointer)
+    let html = `<div class="stat-card" style="cursor: pointer;" onclick="filterByCard('All')"><span class="stat-title">Total</span><span class="stat-value">${data.length}</span></div>`;
+    
     const evaluatingCount = data.filter(a => a.status === 'Evaluating' || !a.status).length;
-    html += `<div class="stat-card" style="border-top-color: var(--color-eval);"><span class="stat-title">Pending</span><span class="stat-value">${evaluatingCount}</span></div>`;
+    html += `<div class="stat-card" style="border-top-color: var(--color-eval); cursor: pointer;" onclick="filterByCard('Evaluating')"><span class="stat-title">Pending</span><span class="stat-value">${evaluatingCount}</span></div>`;
 
-    // 2. Dynamic Teams
-    globalTeamNames.forEach(team => {
+    // 2. Dynamic Teams 
+    globalTeamNames.forEach((team, index) => {
         const count = data.filter(a => a.status === team).length;
-        html += `<div class="stat-card" style="border-top-color: var(--accentBlue);"><span class="stat-title">${team}</span><span class="stat-value">${count}</span></div>`;
+        const teamColor = getTeamColor(team, index);
+        html += `<div class="stat-card" style="border-top-color: ${teamColor}; cursor: pointer;" onclick="filterByCard('${team}')"><span class="stat-title">${team}</span><span class="stat-value">${count}</span></div>`;
     });
 
     // 3. Cuts
     const cutCount = data.filter(a => a.status === 'Cut').length;
-    html += `<div class="stat-card" style="border-top-color: var(--color-cut);"><span class="stat-title">Cuts</span><span class="stat-value">${cutCount}</span></div>`;
+    html += `<div class="stat-card" style="border-top-color: var(--color-cut); cursor: pointer;" onclick="filterByCard('Cut')"><span class="stat-title">Cuts</span><span class="stat-value">${cutCount}</span></div>`;
 
     statGrid.innerHTML = html;
+}
+
+function filterByCard(statusValue) {
+    const statusDropdown = document.getElementById('filterStatus');
+    if (statusDropdown) {
+        statusDropdown.value = statusValue; // Changes the dropdown to match the card
+        filterTable(); // Redraws the table!
+    }
 }
 
 function filterTable() {
@@ -208,10 +218,14 @@ function renderTable(dataToRender) {
     }
 
     filteredData.forEach(athlete => {
-        // Dynamic Colors without needing extra CSS classes
+        // --- THE UPGRADE: Smart Status Colors ---
         let statusColor = 'var(--color-eval)';
-        if (athlete.status === 'Cut') statusColor = 'var(--color-cut)';
-        else if (athlete.status !== 'Evaluating' && globalTeamNames.includes(athlete.status)) statusColor = 'var(--accentBlue)';
+        if (athlete.status === 'Cut') {
+            statusColor = 'var(--color-cut)';
+        } else if (athlete.status !== 'Evaluating' && globalTeamNames.includes(athlete.status)) {
+            const teamIndex = globalTeamNames.indexOf(athlete.status);
+            statusColor = getTeamColor(athlete.status, teamIndex);
+        }
 
         let splashHtml = `<div class="team-splash" style="background: color-mix(in srgb, ${statusColor} 15%, transparent);"></div>`;
 
@@ -225,12 +239,14 @@ function renderTable(dataToRender) {
             </div>` : 
             `<div style="position: relative; z-index: 2; text-align: center; color: #94A3B8; font-size: 12px; margin-top: 15px; padding: 10px; background: var(--primary); border-radius: 8px;">No scores recorded yet</div>`;
 
-        // Generate the Dropdown Options dynamically
-        let optionsHtml = `<option value="Evaluating" ${athlete.status === 'Evaluating' ? 'selected' : ''}>Evaluating</option>`;
+        // Generate the Dropdown Options dynamically (Forcing dark backgrounds so it's readable!)
+        const optionStyle = 'style="background: #232732; color: #E2E8F0;"';
+        
+        let optionsHtml = `<option value="Evaluating" ${optionStyle} ${athlete.status === 'Evaluating' ? 'selected' : ''}>Evaluating</option>`;
         globalTeamNames.forEach(team => {
-            optionsHtml += `<option value="${team}" ${athlete.status === team ? 'selected' : ''}>${team}</option>`;
+            optionsHtml += `<option value="${team}" ${optionStyle} ${athlete.status === team ? 'selected' : ''}>${team}</option>`;
         });
-        optionsHtml += `<option value="Cut" ${athlete.status === 'Cut' ? 'selected' : ''}>Cut</option>`;
+        optionsHtml += `<option value="Cut" ${optionStyle} ${athlete.status === 'Cut' ? 'selected' : ''}>Cut</option>`;
 
         const card = document.createElement('div');
         card.className = 'mobile-card';
@@ -251,7 +267,7 @@ function renderTable(dataToRender) {
                   <div style="font-size: 13px; color: #94A3B8; margin-top: 6px;">${athlete.grade}th Grade • ${athlete.preferred_position ? athlete.preferred_position.join(', ') : 'Unknown'}</div>
                   <div style="font-size: 12px; color: #94A3B8; margin-top: 2px;">Group ${athlete.tryout_group || 'Unassigned'}</div>
                 </div>
-                <select onchange="changeStatusInline(event, '${athlete.id}', this.value)" onclick="event.stopPropagation()" style="background: ${statusColor}20; color: ${statusColor}; padding: 6px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; text-transform: uppercase; border: none; outline: none; cursor: pointer; flex-shrink: 0;">
+                <select onchange="changeStatusInline(event, '${athlete.id}', this.value)" onclick="event.stopPropagation()" style="background: color-mix(in srgb, ${statusColor} 15%, transparent); color: ${statusColor}; padding: 6px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; text-transform: uppercase; border: none; outline: none; cursor: pointer; flex-shrink: 0;">
                   ${optionsHtml}
                 </select>
               </div>
@@ -362,9 +378,15 @@ function renderProfileStats(athlete) {
 
 async function changeStatusInline(event, athleteId, newStatus) {
     if (event) event.stopPropagation();
+
+    // Instantly update UI locally
     const athlete = globalAthleteData.find(a => a.id === athleteId);
     if (athlete) athlete.status = newStatus;
+    
+    // NEW: Redraw BOTH the cards and the table!
+    updateStatCards(globalAthleteData);
     renderTable(globalAthleteData);
+
     const result = await apiUpdateAthleteField(athleteId, 'status', newStatus);
     if (!result.success) {
         alert("Failed to update status on server.");
@@ -386,6 +408,9 @@ async function saveStatus() {
     
     const athlete = globalAthleteData.find(a => a.id === currentProfileId);
     if (athlete) athlete.status = newStatus;
+
+    // NEW: Ensure cards update in the background when editing a profile
+    updateStatCards(globalAthleteData);
 
     const result = await apiUpdateAthleteField(currentProfileId, 'status', newStatus);
     if (!result.success) alert("Failed to update status on server.");
@@ -412,7 +437,7 @@ function renderStationTable() {
         return;
     }
     
-    const config = STATION_CONFIG[station];
+    const config = STATION_CONFIG[station] || { min: 1, max: 5, step: 0.5, default: 3, display: (v, m) => Number(v).toFixed(1) + " / " + m };
     if (currentSelectedStation !== station) {
         if(customMinInput) customMinInput.value = config.min;
         if(customMaxInput) customMaxInput.value = config.max;
@@ -465,7 +490,7 @@ function renderStationTable() {
 }
 
 function updateSliderDisplay(athleteId, station, rawValue) {
-    const config = STATION_CONFIG[station];
+    const config = STATION_CONFIG[station] || { display: (v, m) => Number(v).toFixed(1) + " / " + m };
     const activeMax = document.getElementById('customMax').value;
     document.getElementById(`display_${athleteId}`).innerText = config.display(rawValue, activeMax);
 }
@@ -602,6 +627,44 @@ function formatRawStat(category, rawVal) {
     }
     if (category.includes('Sprint')) return parseFloat(rawVal).toFixed(2) + 's';
     return rawVal; 
+}
+
+function getTeamColor(teamName, index) {
+    if (!teamName) return '#94A3B8';
+    const name = teamName.toLowerCase();
+    
+    // 1. Smart Name Matching (If the team name has a color, use it!)
+    if (name.includes('white')) return '#F8FAFC'; // slightly off-white for dark mode visibility
+    if (name.includes('blue')) return '#3B82F6';
+    if (name.includes('red')) return '#EF4444';
+    if (name.includes('green')) return '#10B981';
+    if (name.includes('gold') || name.includes('yellow')) return '#F59E0B';
+    if (name.includes('purple')) return '#8B5CF6';
+    if (name.includes('orange')) return '#F97316';
+    if (name.includes('pink')) return '#EC4899';
+    if (name.includes('black')) return '#334155'; // Dark slate for dark mode
+    if (name.includes('silver') || name.includes('grey') || name.includes('gray')) return '#94A3B8';
+    
+    // 2. Expanded Vibrant Fallback Palette (15 unique colors for large programs!)
+    const palette = [
+        '#10B981', // Emerald
+        '#F59E0B', // Amber
+        '#8B5CF6', // Purple
+        '#EC4899', // Pink
+        '#14B8A6', // Teal
+        '#F43F5E', // Rose
+        '#0EA5E9', // Sky
+        '#84CC16', // Lime
+        '#6366F1', // Indigo
+        '#D946EF', // Fuchsia
+        '#EAB308', // Yellow
+        '#06B6D4', // Cyan
+        '#F97316', // Orange
+        '#EF4444', // Bright Red
+        '#34D399'  // Mint
+    ];
+    
+    return palette[index % palette.length];
 }
 
 // ==========================================
@@ -779,6 +842,8 @@ async function confirmEditStat() {
 // ==========================================
 // GLOBAL APP SETTINGS LOGIC
 // ==========================================
+let globalMetricsData = []; // Stores the database metrics so we can toggle them
+
 async function fetchAndApplySettings() {
     const settings = await apiFetchSettings();
     if (settings) {
@@ -793,18 +858,15 @@ async function fetchAndApplySettings() {
             document.getElementById('settingLogoUrl').value = settings.logo_url || '';
             document.getElementById('settingTeamNames').value = settings.team_names || 'Varsity, JV, Freshman';
             
-            // Update Sidebar Name
             const sidebarName = document.getElementById('sidebarSchoolName');
             if (sidebarName && settings.program_name) {
                 sidebarName.innerHTML = `${settings.program_name}<br><span style="color: var(--secondary); font-size: 14px;">Tryout Manager</span>`;
             }
 
-            // Parse the dynamic teams and update dropdowns globally!
             if (settings.team_names) {
                 globalTeamNames = settings.team_names.split(',').map(s => s.trim()).filter(s => s !== '');
             }
 
-            // Dynamically rebuild the Dashboard Filter Dropdown
             const filterStatus = document.getElementById('filterStatus');
             if (filterStatus) {
                 filterStatus.innerHTML = `<option value="All">All Statuses</option><option value="Evaluating">Evaluating (Pending)</option>`;
@@ -812,7 +874,6 @@ async function fetchAndApplySettings() {
                 filterStatus.innerHTML += `<option value="Cut">Cut</option>`;
             }
 
-            // Dynamically rebuild the Athlete Profile Dropdown
             const profileStatus = document.getElementById('statusSelect');
             if (profileStatus) {
                 profileStatus.innerHTML = `<option value="Evaluating">Evaluating (Pending)</option>`;
@@ -821,6 +882,123 @@ async function fetchAndApplySettings() {
             }
         }
     }
+
+    // NEW: Fetch and draw the Metrics Toggles!
+    globalMetricsData = await apiFetchAllMetrics();
+    renderSettingsMetrics();
+    populateStationDropdown();
+}
+
+// Add this right below the `renderSettingsMetrics` function declaration!
+function renderSettingsMetrics() {
+    const container = document.getElementById('settingsMetricsList');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!globalMetricsData || globalMetricsData.length === 0) {
+        container.innerHTML = '<div style="color: #94A3B8; font-size: 13px;">No metrics found in database.</div>';
+        return;
+    }
+
+    const categories = {};
+    globalMetricsData.forEach(m => {
+        if (!categories[m.category]) categories[m.category] = [];
+        categories[m.category].push(m);
+    });
+
+    for (const [category, metrics] of Object.entries(categories)) {
+        let html = `<h5 style="color: var(--text-color); margin: 15px 0 10px 0; border-bottom: 1px solid #3A4150; padding-bottom: 5px; font-size: 14px;">${category}</h5>`;
+        
+        metrics.forEach(m => {
+            html += `
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #2A303C;">
+              <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #E2E8F0; font-size: 14px; flex: 1;">
+                <input type="checkbox" id="metric_toggle_${m.id}" data-id="${m.id}" style="width: 18px; height: 18px; accent-color: var(--secondary);" ${m.is_active ? 'checked' : ''}>
+                ${m.name}
+              </label>
+              <div style="display: flex; gap: 15px;">
+                <button onclick="renameMetric('${m.id}', '${m.name}')" style="background: transparent; border: none; color: var(--accentBlue); cursor: pointer; font-size: 14px;" title="Rename">✎</button>
+                <button onclick="deleteMetric('${m.id}')" style="background: transparent; border: none; color: var(--color-cut); cursor: pointer; font-size: 14px;" title="Delete">🗑</button>
+              </div>
+            </div>`;
+        });
+        container.innerHTML += html;
+    }
+}
+
+// ------------------------------------
+// NEW METRIC MANAGEMENT FUNCTIONS
+// ------------------------------------
+async function addNewMetric(event) {
+    const nameInput = document.getElementById('newMetricName');
+    const catInput = document.getElementById('newMetricCategory');
+    const name = nameInput.value.trim();
+    
+    if(!name) { alert("Please enter a metric name."); return; }
+    
+    const btn = event.target;
+    btn.innerText = "Adding..."; btn.disabled = true;
+    
+    const response = await apiAddMetric(name, catInput.value);
+    if(response.success) {
+        nameInput.value = '';
+        globalMetricsData = await apiFetchAllMetrics();
+        renderSettingsMetrics();
+        populateStationDropdown(); 
+    } else {
+        alert("Error adding metric: " + response.error);
+    }
+    btn.innerText = "Add to Tryouts"; btn.disabled = false;
+}
+
+async function renameMetric(id, oldName) {
+    const newName = prompt("Enter new name for metric:", oldName);
+    if (!newName || newName.trim() === '' || newName.trim() === oldName) return;
+    
+    const response = await apiRenameMetric(id, newName.trim());
+    if (response.success) {
+        globalMetricsData = await apiFetchAllMetrics();
+        renderSettingsMetrics();
+        populateStationDropdown();
+    } else {
+        alert("Error renaming: " + response.error);
+    }
+}
+
+async function deleteMetric(id) {
+    if(!confirm("Are you sure you want to delete this metric?")) return;
+    
+    const response = await apiDeleteMetric(id);
+    if (response.success) {
+        globalMetricsData = globalMetricsData.filter(m => m.id != id);
+        renderSettingsMetrics();
+        populateStationDropdown();
+    } else {
+        alert(response.error);
+    }
+}
+
+// Automatically builds the dropdown for the Station Evaluator page based on active DB metrics
+function populateStationDropdown() {
+    const select = document.getElementById('stationSelect');
+    if(!select) return;
+    
+    const activeMetrics = globalMetricsData.filter(m => m.is_active);
+    let html = '<option value="">-- Select Station --</option>';
+    
+    const categories = {};
+    activeMetrics.forEach(m => {
+        if(!categories[m.category]) categories[m.category] = [];
+        categories[m.category].push(m);
+    });
+    
+    for(const [cat, metrics] of Object.entries(categories)) {
+        html += `<optgroup label="${cat}">`;
+        metrics.forEach(m => { html += `<option value="${m.name}">${m.name}</option>`; });
+        html += `</optgroup>`;
+    }
+    
+    select.innerHTML = html;
 }
 
 async function saveAppSettings() {
@@ -828,6 +1006,7 @@ async function saveAppSettings() {
     btn.innerText = "Saving...";
     btn.disabled = true;
 
+    // 1. Save Basic Settings
     const newColor = document.getElementById('settingThemeColor').value;
     const requireId = document.getElementById('settingRequireId').checked;
     const programName = document.getElementById('settingProgramName').value.trim();
@@ -836,21 +1015,40 @@ async function saveAppSettings() {
 
     const response = await apiSaveSettings(requireId, newColor, programName, logoUrl, teamNames);
     
+    // 2. Save Metric Toggles
+    const metricCheckboxes = document.querySelectorAll('input[id^="metric_toggle_"]');
+    let updatedMetrics = [];
+    metricCheckboxes.forEach(cb => {
+        const id = cb.getAttribute('data-id');
+        const metric = globalMetricsData.find(m => m.id == id);
+        if (metric) {
+            updatedMetrics.push({
+                id: metric.id,
+                name: metric.name,
+                category: metric.category,
+                is_active: cb.checked
+            });
+        }
+    });
+
+    if (updatedMetrics.length > 0) {
+        await apiUpdateMetrics(updatedMetrics);
+    }
+
     if (response.success) {
-        // Immediately fetch and redraw the dashboard to show new team cards/filters
         await fetchAndApplySettings();
         fetchAndRenderDashboard(); 
 
         btn.innerText = "Saved!";
         btn.style.background = "var(--accentGreen)";
         setTimeout(() => {
-            btn.innerText = "Save Settings";
+            btn.innerText = "Save All Settings";
             btn.style.background = "var(--secondary)";
             btn.disabled = false;
         }, 1500);
     } else {
         alert("Failed to save settings.");
-        btn.innerText = "Save Settings";
+        btn.innerText = "Save All Settings";
         btn.disabled = false;
     }
 }

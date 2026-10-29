@@ -277,47 +277,83 @@
            VIEW: SETTINGS
       ========================================== -->
       <div id="view-settings" class="app-view" style="display: none;">
-        <div class="table-container" style="max-width: 600px; margin: 0 auto;">
-          <h3 style="margin-top: 0; color: var(--text-color); border-bottom: 1px solid #2A303C; padding-bottom: 10px;">Global App Settings</h3>
+        <div style="max-width: 950px; margin: 0 auto; padding-bottom: 40px;">
           
-          <!-- BRANDING SECTION -->
-          <div style="margin-top: 20px; margin-bottom: 25px;">
-            <label style="font-size: 12px; color: #94A3B8; text-transform: uppercase; font-weight: bold;">Program Name</label>
-            <input type="text" id="settingProgramName" class="search-box" style="width: 100%; box-sizing: border-box; margin-top: 5px;" placeholder="e.g., Valhalla">
-            <p style="font-size: 12px; color: #94A3B8; margin-top: 5px;">Displays at the top of the public Intake form.</p>
+          <!-- Header & Save Button -->
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2A303C; padding-bottom: 10px; margin-bottom: 20px;">
+            <h3 style="margin: 0; color: var(--text-color);">Global App Settings</h3>
+            <button class="btn-action" id="btnSaveSettings" onclick="saveAppSettings()" style="padding: 10px 25px; background: var(--secondary); color: white; border: none; font-size: 14px; font-weight: bold; border-radius: 8px; cursor: pointer;">Save Settings</button>
           </div>
 
-          <div style="margin-bottom: 25px;">
-            <label style="font-size: 12px; color: #94A3B8; text-transform: uppercase; font-weight: bold;">Program Logo URL</label>
-            <input type="text" id="settingLogoUrl" class="search-box" style="width: 100%; box-sizing: border-box; margin-top: 5px;" placeholder="https://...">
-            <p style="font-size: 12px; color: #94A3B8; margin-top: 5px;">Paste a direct image link (.png or .jpg) to display above the name.</p>
-          </div>
+          <!-- Responsive 2-Column Grid -->
+          <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+            
+            <!-- LEFT COLUMN -->
+            <div style="flex: 1; min-width: 320px; display: flex; flex-direction: column; gap: 20px;">
+              <!-- CARD 1: BRANDING -->
+              <div class="mobile-card" style="margin: 0;">
+                <h4 style="margin-top: 0; color: var(--secondary); margin-bottom: 15px;">1. Branding</h4>
+                <div style="margin-bottom: 15px;">
+                  <label style="font-size: 12px; color: #94A3B8; text-transform: uppercase; font-weight: bold;">Program Name</label>
+                  <input type="text" id="settingProgramName" class="search-box" style="width: 100%; box-sizing: border-box; margin-top: 5px;" placeholder="e.g., Valhalla">
+                </div>
+                <div style="margin-bottom: 15px;">
+                  <label style="font-size: 12px; color: #94A3B8; text-transform: uppercase; font-weight: bold;">Program Logo URL</label>
+                  <input type="text" id="settingLogoUrl" class="search-box" style="width: 100%; box-sizing: border-box; margin-top: 5px;" placeholder="https://...">
+                </div>
+                <div>
+                  <label style="font-size: 12px; color: #94A3B8; text-transform: uppercase; font-weight: bold;">Brand Theme Color</label>
+                  <div style="display: flex; gap: 10px; margin-top: 5px;">
+                    <input type="color" id="settingThemeColor" onchange="document.getElementById('settingThemeHex').value = this.value" style="height: 44px; width: 60px; border: none; background: transparent; cursor: pointer; padding: 0;">
+                    <input type="text" id="settingThemeHex" class="search-box" style="flex: 1;" readonly>
+                  </div>
+                </div>
+              </div>
 
-          <div style="margin-bottom: 25px;">
-            <label style="font-size: 12px; color: #94A3B8; text-transform: uppercase; font-weight: bold;">Brand Theme Color</label>
-            <div style="display: flex; gap: 10px; margin-top: 5px;">
-              <input type="color" id="settingThemeColor" onchange="document.getElementById('settingThemeHex').value = this.value" style="height: 44px; width: 60px; border: none; background: transparent; cursor: pointer; padding: 0;">
-              <input type="text" id="settingThemeHex" class="search-box" style="flex: 1;" readonly>
+              <!-- CARD 2: TRYOUT PREFERENCES -->
+              <div class="mobile-card" style="margin: 0;">
+                <h4 style="margin-top: 0; color: var(--secondary); margin-bottom: 15px;">2. Tryout Preferences</h4>
+                <div style="margin-bottom: 15px;">
+                  <label style="font-size: 12px; color: #94A3B8; text-transform: uppercase; font-weight: bold;">Team Names</label>
+                  <input type="text" id="settingTeamNames" class="search-box" style="width: 100%; box-sizing: border-box; margin-top: 5px;" placeholder="Varsity, JV, Freshman">
+                  <p style="font-size: 12px; color: #94A3B8; margin-top: 5px;">Separate teams with a comma (e.g., 18-1, 18-2, 17-1).</p>
+                </div>
+                <div style="background: #1A1D24; padding: 15px; border-radius: 8px; border: 1px solid #3A4150;">
+                  <label style="display: flex; align-items: center; gap: 10px; color: var(--text-color); cursor: pointer; font-weight: bold; font-size: 15px;">
+                    <input type="checkbox" id="settingRequireId" style="width: 20px; height: 20px; accent-color: var(--secondary); cursor: pointer;">
+                    Require Student ID on Form
+                  </label>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div style="margin-bottom: 25px;">
-            <label style="font-size: 12px; color: #94A3B8; text-transform: uppercase; font-weight: bold;">Team Names</label>
-            <input type="text" id="settingTeamNames" class="search-box" style="width: 100%; box-sizing: border-box; margin-top: 5px;" placeholder="Varsity, JV, Freshman">
-            <p style="font-size: 12px; color: #94A3B8; margin-top: 5px;">Separate teams with a comma (e.g., 18-1, 18-2, 17-1).</p>
-          </div>
-          
-          <div style="margin-bottom: 25px; background: #1A1D24; padding: 15px; border-radius: 8px; border: 1px solid #3A4150;">
-            <label style="display: flex; align-items: center; gap: 10px; color: var(--text-color); cursor: pointer; font-weight: bold; font-size: 15px;">
-              <input type="checkbox" id="settingRequireId" style="width: 20px; height: 20px; accent-color: var(--secondary); cursor: pointer;">
-              Require Student ID on Form
-            </label>
-            <div style="font-size: 12px; color: #94A3B8; margin-top: 8px; margin-left: 30px;">
-              Check this for High School tryouts. Uncheck for Club tryouts.
+            <!-- RIGHT COLUMN -->
+            <div style="flex: 1; min-width: 320px; display: flex; flex-direction: column; gap: 20px;">
+              <!-- CARD 3: EVALUATION METRICS -->
+              <div class="mobile-card" style="margin: 0;">
+                <h4 style="margin-top: 0; color: var(--secondary); margin-bottom: 5px;">3. Evaluation Metrics</h4>
+                <p style="font-size: 12px; color: #94A3B8; margin-bottom: 15px;">Toggle metrics to hide them, or add custom drills.</p>
+                
+                <div id="settingsMetricsList">
+                  <div style="color: #94A3B8; font-size: 13px;">Loading metrics...</div>
+                </div>
+
+                <!-- ADD CUSTOM METRIC UI -->
+                <div style="margin-top: 25px; border-top: 1px dashed #3A4150; padding-top: 15px;">
+                  <h5 style="color: var(--text-color); margin: 0 0 10px 0;">+ Add Custom Metric</h5>
+                  <div style="display: flex; gap: 10px;">
+                    <input type="text" id="newMetricName" class="search-box" style="flex: 2; font-size: 13px;" placeholder="e.g., Agility Drill">
+                    <select id="newMetricCategory" class="search-box" style="flex: 1; font-size: 13px;">
+                      <option value="Athleticism">Athleticism</option>
+                      <option value="Volleyball Skills">Volleyball Skills</option>
+                    </select>
+                  </div>
+                  <button class="btn-action" onclick="addNewMetric(event)" style="width: 100%; margin-top: 10px; padding: 12px; background: #3A4150; color: white; border: none;">Add to Tryouts</button>
+                </div>
+              </div>
             </div>
+            
           </div>
-          
-          <button class="btn-action" id="btnSaveSettings" onclick="saveAppSettings()" style="width: 100%; padding: 15px; background: var(--secondary); color: white; border: none; font-size: 16px;">Save Settings</button>
         </div>
       </div>
 

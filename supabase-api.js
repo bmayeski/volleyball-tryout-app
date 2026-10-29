@@ -196,3 +196,67 @@ async function apiSaveSettings(requireId, themeColor, programName, logoUrl, team
         return { success: false, error: error.message };
     }
 }
+
+// ==========================================
+// 7. METRICS MANAGEMENT
+// ==========================================
+async function apiFetchAllMetrics() {
+    try {
+        const { data, error } = await supabaseClient.from('evaluation_metrics').select('*').order('category').order('name');
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error("Error fetching metrics:", error);
+        return [];
+    }
+}
+
+async function apiUpdateMetrics(metricsArray) {
+    try {
+        // Upsert efficiently updates multiple rows at once
+        const { error } = await supabaseClient.from('evaluation_metrics').upsert(metricsArray);
+        if (error) throw error;
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating metrics:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+async function apiAddMetric(name, category) {
+    try {
+        const { data, error } = await supabaseClient.from('evaluation_metrics')
+            .insert([{ name, category, is_active: true }])
+            .select().single();
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+async function apiRenameMetric(id, newName) {
+    try {
+        const { error } = await supabaseClient.from('evaluation_metrics')
+            .update({ name: newName }).eq('id', id);
+        if (error) throw error;
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+async function apiDeleteMetric(id) {
+    try {
+        const { error } = await supabaseClient.from('evaluation_metrics')
+            .delete().eq('id', id);
+        if (error) throw error;
+        return { success: true };
+    } catch (error) {
+        // Prevent deletion if athletes already have scores for this metric!
+        if (error.message.includes('foreign key') || error.message.includes('violates')) {
+            return { success: false, error: "Athletes already have scores for this metric! Uncheck the box to hide it instead of deleting it." };
+        }
+        return { success: false, error: error.message };
+    }
+}
