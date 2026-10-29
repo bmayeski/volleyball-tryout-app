@@ -5,33 +5,62 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 document.addEventListener('DOMContentLoaded', async () => {
     const { data } = await supabaseClient.from('app_settings').select('*').eq('id', 1).single();
     if (data) {
-        // Apply Color
-        document.documentElement.style.setProperty('--brand', data.theme_color);
-        
-        // Apply Brand Name & Logo
-        if (data.program_name) {
-            document.getElementById('displayProgramName').innerText = data.program_name;
+        // 1. Apply Brand Color
+        if (data.theme_color) {
+            document.documentElement.style.setProperty('--brand', data.theme_color);
         }
-        if (data.logo_url) {
-            const logoImg = document.getElementById('displayLogo');
+        
+        // 2. Apply Brand Name & Logo (if elements exist on intake.html)
+        const progNameEl = document.getElementById('displayProgramName');
+        if (data.program_name && progNameEl) {
+            progNameEl.innerText = data.program_name;
+        }
+        const logoImg = document.getElementById('displayLogo');
+        if (data.logo_url && logoImg) {
             logoImg.src = data.logo_url;
             logoImg.style.display = 'block';
         }
-        document.getElementById('brandHeader').style.display = 'flex';
+        const brandHeader = document.getElementById('brandHeader');
+        if (brandHeader) brandHeader.style.display = 'flex';
         
-        // Hide or Show Student ID based on settings
+        // 3. Hide or Show Student ID based on settings
         const idWrapper = document.getElementById('studentIdWrapper');
         const idInput = document.getElementById('student_id');
-        if (data.require_student_id) {
-            idWrapper.style.display = 'flex';
-            idInput.setAttribute('required', 'true');
-        } else {
-            idWrapper.style.display = 'none';
-            idInput.removeAttribute('required');
+        if (idWrapper && idInput) {
+            if (data.require_student_id) {
+                idWrapper.style.display = 'flex';
+                idInput.setAttribute('required', 'true');
+            } else {
+                idWrapper.style.display = 'none';
+                idInput.removeAttribute('required');
+            }
+        }
+
+        // 4. Dynamically Populate Grade Level (5th-12th or 9th-12th)
+        const gradeSelect = document.getElementById('grade');
+        if (gradeSelect) {
+            const minGrade = (data.grade_range === '5-12') ? 5 : 9;
+            gradeSelect.innerHTML = '<option value="">Select Grade</option>';
+            for (let g = minGrade; g <= 12; g++) {
+                gradeSelect.innerHTML += `<option value="${g}">${g}th Grade</option>`;
+            }
+        }
+
+        // 5. Dynamically Populate Tryout Groups from Settings
+        if (data.tryout_groups) {
+            const groupSelect = document.getElementById('tryout_group');
+            if (groupSelect) {
+                const groups = data.tryout_groups.split(',').map(s => s.trim()).filter(s => s !== '');
+                groupSelect.innerHTML = '<option value="">Select Group</option>';
+                groups.forEach(g => {
+                    groupSelect.innerHTML += `<option value="${g}">Group ${g}</option>`;
+                });
+            }
         }
     }
     
-    document.getElementById('formWrapper').style.display = 'block';
+    const wrapper = document.getElementById('formWrapper');
+    if (wrapper) wrapper.style.display = 'block';
 });
 
 async function submitIntakeForm(event) {
