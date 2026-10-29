@@ -92,12 +92,18 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
 
     // Check if Coach is already logged in
+    /*
     const session = await apiGetCurrentSession();
     if (session && session.user) {
         unlockAppForCoach(session.user);
     } else {
         document.getElementById('loginOverlay').style.display = 'flex';
     }
+    */
+
+    // --- BYPASS LOGIN & LOAD APP DIRECTLY ---
+    fetchAndApplySettings();
+    loadView('overview');
 });
 
 async function handleCoachLogin(event) {
