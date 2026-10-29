@@ -145,10 +145,10 @@ function updateStatCards(data) {
     const statGrid = document.getElementById('statGrid');
     if (!statGrid) return;
 
-    // Compact styles to override your main CSS file
-    const compactCardStyle = "cursor: pointer; padding: 8px 4px; min-height: auto; text-align: center;";
-    const titleStyle = "font-size: 9px; margin-bottom: 4px; display: block; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;";
-    const valueStyle = "font-size: 20px; font-weight: bold; line-height: 1;";
+    // THE UPGRADE: Flexbox for side-by-side text, and tighter padding for shorter cards!
+    const compactCardStyle = "cursor: pointer; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; min-height: auto;";
+    const titleStyle = "font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0; color: #94A3B8;";
+    const valueStyle = "font-size: 16px; font-weight: bold; margin: 0; color: var(--text-color);";
 
     // 1. Total & Pending
     let html = `<div class="stat-card" style="${compactCardStyle}" onclick="filterByCard('All')">
