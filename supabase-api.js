@@ -205,6 +205,21 @@ async function apiSaveSettings(requireId, themeColor, programName, logoUrl, team
     }
 }
 
+async function apiSaveAppUrls(intakeUrl, adminUrl) {
+    try {
+        const { error } = await supabaseClient.from('app_settings').update({
+            intake_url: intakeUrl,
+            admin_url: adminUrl
+        }).eq('id', 1);
+        
+        if (error) throw error;
+        return { success: true };
+    } catch (error) {
+        console.error("Error saving URLs:", error);
+        return { success: false, error: error.message };
+    }
+}
+
 // ==========================================
 // 7. METRICS MANAGEMENT
 // ==========================================

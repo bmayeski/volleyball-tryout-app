@@ -1181,7 +1181,15 @@ async function fetchAndApplySettings() {
             document.getElementById('settingLogoUrl').value = settings.logo_url || '';
             document.getElementById('settingTeamNames').value = settings.team_names || 'Varsity, JV, Freshman';
             
-            // NEW: Apply Groups to the Settings Input
+            // --- NEW: Pull the saved URLs into the Printables tab ---
+            const intakeInput = document.getElementById('intakeUrl');
+            if (intakeInput) intakeInput.value = settings.intake_url || '';
+            
+            const adminInput = document.getElementById('adminUrl');
+            if (adminInput) adminInput.value = settings.admin_url || '';
+            // --------------------------------------------------------
+            
+            // Apply Groups to the Settings Input
             document.getElementById('settingTryoutGroups').value = settings.tryout_groups || '1, 2, 3';
 
             document.getElementById('settingGradeRange').value = settings.grade_range || '9-12';
@@ -1197,7 +1205,7 @@ async function fetchAndApplySettings() {
                 globalTeamNames = settings.team_names.split(',').map(s => s.trim()).filter(s => s !== '');
             }
 
-            // NEW: Parse the groups into the global array
+            // Parse the groups into the global array
             if (settings.tryout_groups) {
                 globalTryoutGroups = settings.tryout_groups.split(',').map(s => s.trim()).filter(s => s !== '');
             }
@@ -1216,14 +1224,14 @@ async function fetchAndApplySettings() {
                 profileStatus.innerHTML += `<option value="Cut">Cut</option>`;
             }
 
-            // NEW: Rebuild the Dashboard Group Filter Dropdown
+            // Rebuild the Dashboard Group Filter Dropdown
             const filterGroup = document.getElementById('filterGroup');
             if (filterGroup) {
                 filterGroup.innerHTML = '<option value="All">All Groups</option>';
                 globalTryoutGroups.forEach(g => filterGroup.innerHTML += `<option value="${g}">${g}</option>`);
             }
 
-            // NEW: Rebuild the Athlete Profile Group Dropdown
+            // Rebuild the Athlete Profile Group Dropdown
             const groupSelect = document.getElementById('groupSelect');
             if (groupSelect) {
                 groupSelect.innerHTML = '';
@@ -1434,7 +1442,13 @@ async function saveAppSettings() {
 // ==========================================
 
 function generateQRPDF(type) {
-    const urlInput = type === 'intake' ? document.getElementById('intakeUrl').value.trim() : document.getElementById('adminUrl').value.trim();
+    // Grab both inputs so we can save them
+    const intakeUrl = document.getElementById('intakeUrl').value.trim();
+    const adminUrl = document.getElementById('adminUrl').value.trim();
+    
+    // Determine which one we are actually printing right now
+    const urlInput = type === 'intake' ? intakeUrl : adminUrl;
+    
     const title = type === 'intake' ? 'Athlete Registration' : 'Coach Evaluation App';
     const subtitle = type === 'intake' ? 'Scan the QR code below to register for tryouts.' : 'Scan the QR code below to access the Tryout Manager.';
     
@@ -1443,12 +1457,14 @@ function generateQRPDF(type) {
         return;
     }
 
+    // NEW: Auto-save both URLs to the database in the background!
+    apiSaveAppUrls(intakeUrl, adminUrl);
+
     // Call a free API to turn the URL into a high-res QR code image
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(urlInput)}`;
 
     const win = window.open('', '_blank');
     
-    // The onload event in the <img> tag ensures the browser doesn't try to print a blank box before the QR code finishes downloading
     win.document.write(`
         <html><head><title>QR Code - ${title}</title>
         <style>
