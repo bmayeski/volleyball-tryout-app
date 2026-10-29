@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const groups = data.tryout_groups.split(',').map(s => s.trim()).filter(s => s !== '');
                 groupSelect.innerHTML = '<option value="">Select Group</option>';
                 groups.forEach(g => {
-                    groupSelect.innerHTML += `<option value="${g}">Group ${g}</option>`;
+                    groupSelect.innerHTML += `<option value="${g}">${g}</option>`;
                 });
             }
         }
