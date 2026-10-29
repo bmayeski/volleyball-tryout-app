@@ -145,10 +145,10 @@ function updateStatCards(data) {
     const statGrid = document.getElementById('statGrid');
     if (!statGrid) return;
 
-    // THE UPGRADE: Flexbox for side-by-side text, and tighter padding for shorter cards!
-    const compactCardStyle = "cursor: pointer; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; min-height: auto;";
-    const titleStyle = "font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0; color: #94A3B8;";
-    const valueStyle = "font-size: 16px; font-weight: bold; margin: 0; color: var(--text-color);";
+    // THE UPGRADE: Added !important to force the row layout over your CSS file
+    const compactCardStyle = "cursor: pointer; padding: 12px 16px !important; display: flex !important; flex-direction: row !important; justify-content: space-between !important; align-items: center !important; min-height: 0 !important;";
+    const titleStyle = "font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0; color: #94A3B8; text-align: left;";
+    const valueStyle = "font-size: 18px; font-weight: bold; margin: 0; color: var(--text-color); text-align: right;";
 
     // 1. Total & Pending
     let html = `<div class="stat-card" style="${compactCardStyle}" onclick="filterByCard('All')">
