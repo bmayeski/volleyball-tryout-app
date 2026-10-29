@@ -5,6 +5,7 @@ let globalAthleteData = [];
 let allPeerStats = {}; // Stores arrays of all scores for the Bell Curve math
 let currentProfileId = null;
 let currentSelectedStation = "";
+let globalTeamNames = ['Varsity', 'JV', 'Freshman']; // Default fallback
 
 const STATION_CONFIG = {
     "Vertical Jump": { min: 84, max: 120, step: 0.5, default: 90, display: (val) => Math.floor(val/12) + "'" + (val%12) + '"' }, 
@@ -141,25 +142,25 @@ async function fetchAndRenderDashboard() {
 }
 
 function updateStatCards(data) {
-    const stats = {
-        total: data.length,
-        evaluating: data.filter(a => a.status === 'Evaluating').length,
-        varsity: data.filter(a => a.status === 'Varsity').length,
-        jv: data.filter(a => a.status === 'JV').length,
-        freshman: data.filter(a => a.status === 'Freshman').length,
-        cut: data.filter(a => a.status === 'Cut').length
-    };
-    
     const statGrid = document.getElementById('statGrid');
-    if (statGrid) {
-        statGrid.innerHTML = 
-            `<div class="stat-card"><span class="stat-title">Total</span><span class="stat-value">${stats.total}</span></div>
-             <div class="stat-card card-eval"><span class="stat-title">Pending</span><span class="stat-value">${stats.evaluating}</span></div>
-             <div class="stat-card card-varsity"><span class="stat-title">Varsity</span><span class="stat-value">${stats.varsity}</span></div>
-             <div class="stat-card card-jv"><span class="stat-title">JV</span><span class="stat-value">${stats.jv}</span></div>
-             <div class="stat-card card-freshman"><span class="stat-title">Frosh</span><span class="stat-value">${stats.freshman}</span></div>
-             <div class="stat-card card-cut"><span class="stat-title">Cuts</span><span class="stat-value">${stats.cut}</span></div>`;
-    }
+    if (!statGrid) return;
+
+    // 1. Total & Pending
+    let html = `<div class="stat-card"><span class="stat-title">Total</span><span class="stat-value">${data.length}</span></div>`;
+    const evaluatingCount = data.filter(a => a.status === 'Evaluating' || !a.status).length;
+    html += `<div class="stat-card" style="border-top-color: var(--color-eval);"><span class="stat-title">Pending</span><span class="stat-value">${evaluatingCount}</span></div>`;
+
+    // 2. Dynamic Teams
+    globalTeamNames.forEach(team => {
+        const count = data.filter(a => a.status === team).length;
+        html += `<div class="stat-card" style="border-top-color: var(--accentBlue);"><span class="stat-title">${team}</span><span class="stat-value">${count}</span></div>`;
+    });
+
+    // 3. Cuts
+    const cutCount = data.filter(a => a.status === 'Cut').length;
+    html += `<div class="stat-card" style="border-top-color: var(--color-cut);"><span class="stat-title">Cuts</span><span class="stat-value">${cutCount}</span></div>`;
+
+    statGrid.innerHTML = html;
 }
 
 function filterTable() {
@@ -207,28 +208,29 @@ function renderTable(dataToRender) {
     }
 
     filteredData.forEach(athlete => {
+        // Dynamic Colors without needing extra CSS classes
         let statusColor = 'var(--color-eval)';
-        if (athlete.status === 'Varsity') statusColor = 'var(--color-varsity)';
-        if (athlete.status === 'JV') statusColor = 'var(--color-jv)';
-        if (athlete.status === 'Freshman') statusColor = 'var(--color-freshman)';
         if (athlete.status === 'Cut') statusColor = 'var(--color-cut)';
+        else if (athlete.status !== 'Evaluating' && globalTeamNames.includes(athlete.status)) statusColor = 'var(--accentBlue)';
 
-        let splashClass = '';
-        if (athlete.status === 'Evaluating') splashClass = 'splash-eval';
-        if (athlete.status === 'Varsity') splashClass = 'splash-varsity';
-        if (athlete.status === 'JV') splashClass = 'splash-jv';
-        if (athlete.status === 'Freshman') splashClass = 'splash-freshman';
-        if (athlete.status === 'Cut') splashClass = 'splash-cut';
+        let splashHtml = `<div class="team-splash" style="background: color-mix(in srgb, ${statusColor} 15%, transparent);"></div>`;
 
         const scoreBadge = athlete.overallAvg > 0 ? 
             `<div style="position: relative; z-index: 2; display: flex; justify-content: space-around; align-items: center; background: var(--primary); padding: 10px; border-radius: 8px; margin-top: 15px;">
-              <div style="text-align: center;"><div style="font-size: 10px; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">Overall</div><div style="font-weight: bold; color: var(--text-color); font-size: 15px;">⭐ ${athlete.overallAvg.toFixed(1)}</div></div>
+              <div style="text-align: center;"><div style="font-size: 10px; color: #94A3B8; text-transform: uppercase; margin-bottom: 2px;">Overall</div><div style="font-weight: bold; color: var(--text-color); font-size: 15px;">⭐ ${athlete.overallAvg.toFixed(1)}</div></div>
               <div style="width: 1px; height: 20px; background: #3A4150;"></div>
-              <div style="text-align: center;"><div style="font-size: 10px; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">Skills</div><div style="color: var(--accentGreen); font-size: 14px; font-weight: bold;">🏐 ${athlete.skillAvg.toFixed(1)}</div></div>
+              <div style="text-align: center;"><div style="font-size: 10px; color: #94A3B8; text-transform: uppercase; margin-bottom: 2px;">Skills</div><div style="color: var(--accentGreen); font-size: 14px; font-weight: bold;">🏐 ${athlete.skillAvg.toFixed(1)}</div></div>
               <div style="width: 1px; height: 20px; background: #3A4150;"></div>
-              <div style="text-align: center;"><div style="font-size: 10px; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">Athletic</div><div style="color: var(--accentBlue); font-size: 14px; font-weight: bold;">🏃 ${athlete.athAvg.toFixed(1)}</div></div>
+              <div style="text-align: center;"><div style="font-size: 10px; color: #94A3B8; text-transform: uppercase; margin-bottom: 2px;">Athletic</div><div style="color: var(--accentBlue); font-size: 14px; font-weight: bold;">🏃 ${athlete.athAvg.toFixed(1)}</div></div>
             </div>` : 
             `<div style="position: relative; z-index: 2; text-align: center; color: #94A3B8; font-size: 12px; margin-top: 15px; padding: 10px; background: var(--primary); border-radius: 8px;">No scores recorded yet</div>`;
+
+        // Generate the Dropdown Options dynamically
+        let optionsHtml = `<option value="Evaluating" ${athlete.status === 'Evaluating' ? 'selected' : ''}>Evaluating</option>`;
+        globalTeamNames.forEach(team => {
+            optionsHtml += `<option value="${team}" ${athlete.status === team ? 'selected' : ''}>${team}</option>`;
+        });
+        optionsHtml += `<option value="Cut" ${athlete.status === 'Cut' ? 'selected' : ''}>Cut</option>`;
 
         const card = document.createElement('div');
         card.className = 'mobile-card';
@@ -237,8 +239,8 @@ function renderTable(dataToRender) {
         card.onclick = () => openAthleteProfile(athlete.id);
 
         card.innerHTML = 
-            (splashClass ? `<div class="team-splash ${splashClass}"></div>` : '') +
-            `<div style="position: relative; z-index: 1;">
+            `${splashHtml}
+            <div style="position: relative; z-index: 1;">
               <div style="display: flex; gap: 15px; align-items: flex-start;">
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0;">
                   <div style="font-size: 16px; font-weight: bold; color: ${statusColor};">#${athlete.tryout_number}</div>
@@ -250,11 +252,7 @@ function renderTable(dataToRender) {
                   <div style="font-size: 12px; color: #94A3B8; margin-top: 2px;">Group ${athlete.tryout_group || 'Unassigned'}</div>
                 </div>
                 <select onchange="changeStatusInline(event, '${athlete.id}', this.value)" onclick="event.stopPropagation()" style="background: ${statusColor}20; color: ${statusColor}; padding: 6px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; text-transform: uppercase; border: none; outline: none; cursor: pointer; flex-shrink: 0;">
-                  <option value="Evaluating" ${athlete.status === 'Evaluating' ? 'selected' : ''}>Evaluating</option>
-                  <option value="Varsity" ${athlete.status === 'Varsity' ? 'selected' : ''}>Varsity</option>
-                  <option value="JV" ${athlete.status === 'JV' ? 'selected' : ''}>JV</option>
-                  <option value="Freshman" ${athlete.status === 'Freshman' ? 'selected' : ''}>Freshman</option>
-                  <option value="Cut" ${athlete.status === 'Cut' ? 'selected' : ''}>Cut</option>
+                  ${optionsHtml}
                 </select>
               </div>
               ${scoreBadge}
@@ -793,11 +791,33 @@ async function fetchAndApplySettings() {
             document.getElementById('settingRequireId').checked = settings.require_student_id;
             document.getElementById('settingProgramName').value = settings.program_name || '';
             document.getElementById('settingLogoUrl').value = settings.logo_url || '';
+            document.getElementById('settingTeamNames').value = settings.team_names || 'Varsity, JV, Freshman';
             
-            // Update the sidebar title to match the program name!
+            // Update Sidebar Name
             const sidebarName = document.getElementById('sidebarSchoolName');
             if (sidebarName && settings.program_name) {
                 sidebarName.innerHTML = `${settings.program_name}<br><span style="color: var(--secondary); font-size: 14px;">Tryout Manager</span>`;
+            }
+
+            // Parse the dynamic teams and update dropdowns globally!
+            if (settings.team_names) {
+                globalTeamNames = settings.team_names.split(',').map(s => s.trim()).filter(s => s !== '');
+            }
+
+            // Dynamically rebuild the Dashboard Filter Dropdown
+            const filterStatus = document.getElementById('filterStatus');
+            if (filterStatus) {
+                filterStatus.innerHTML = `<option value="All">All Statuses</option><option value="Evaluating">Evaluating (Pending)</option>`;
+                globalTeamNames.forEach(team => filterStatus.innerHTML += `<option value="${team}">${team}</option>`);
+                filterStatus.innerHTML += `<option value="Cut">Cut</option>`;
+            }
+
+            // Dynamically rebuild the Athlete Profile Dropdown
+            const profileStatus = document.getElementById('statusSelect');
+            if (profileStatus) {
+                profileStatus.innerHTML = `<option value="Evaluating">Evaluating (Pending)</option>`;
+                globalTeamNames.forEach(team => profileStatus.innerHTML += `<option value="${team}">${team}</option>`);
+                profileStatus.innerHTML += `<option value="Cut">Cut</option>`;
             }
         }
     }
@@ -812,18 +832,14 @@ async function saveAppSettings() {
     const requireId = document.getElementById('settingRequireId').checked;
     const programName = document.getElementById('settingProgramName').value.trim();
     const logoUrl = document.getElementById('settingLogoUrl').value.trim();
+    const teamNames = document.getElementById('settingTeamNames').value.trim();
 
-    // Call the updated API function
-    const response = await apiSaveSettings(requireId, newColor, programName, logoUrl);
+    const response = await apiSaveSettings(requireId, newColor, programName, logoUrl, teamNames);
     
     if (response.success) {
-        document.documentElement.style.setProperty('--secondary', newColor); 
-        
-        // Update the sidebar title instantly
-        const sidebarName = document.getElementById('sidebarSchoolName');
-        if (sidebarName && programName) {
-            sidebarName.innerHTML = `${programName}<br><span style="color: var(--secondary); font-size: 14px;">Tryout Manager</span>`;
-        }
+        // Immediately fetch and redraw the dashboard to show new team cards/filters
+        await fetchAndApplySettings();
+        fetchAndRenderDashboard(); 
 
         btn.innerText = "Saved!";
         btn.style.background = "var(--accentGreen)";

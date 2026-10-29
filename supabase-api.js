@@ -181,13 +181,14 @@ async function apiFetchSettings() {
     }
 }
 
-async function apiSaveSettings(requireId, themeColor, programName, logoUrl) {
+async function apiSaveSettings(requireId, themeColor, programName, logoUrl, teamNames) {
     try {
         const { error } = await supabaseClient.from('app_settings').update({
             require_student_id: requireId,
             theme_color: themeColor,
             program_name: programName,
-            logo_url: logoUrl
+            logo_url: logoUrl,
+            team_names: teamNames
         }).eq('id', 1);
         if (error) throw error;
         return { success: true };
