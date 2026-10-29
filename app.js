@@ -963,6 +963,7 @@ function renderSettingsMetrics() {
 async function addNewMetric(event) {
     const nameInput = document.getElementById('newMetricName');
     const catInput = document.getElementById('newMetricCategory');
+    const typeInput = document.getElementById('newMetricType');
     const name = nameInput.value.trim();
     
     if(!name) { alert("Please enter a metric name."); return; }
@@ -970,7 +971,9 @@ async function addNewMetric(event) {
     const btn = event.target;
     btn.innerText = "Adding..."; btn.disabled = true;
     
-    const response = await apiAddMetric(name, catInput.value);
+    // Pass the third parameter (measurement type) to the database
+    const response = await apiAddMetric(name, catInput.value, typeInput.value);
+    
     if(response.success) {
         nameInput.value = '';
         globalMetricsData = await apiFetchAllMetrics();

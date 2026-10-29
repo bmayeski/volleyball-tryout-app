@@ -223,11 +223,15 @@ async function apiUpdateMetrics(metricsArray) {
     }
 }
 
-async function apiAddMetric(name, category) {
+async function apiAddMetric(name, category, measurementType) {
     try {
-        // We added measurement_type to satisfy the database constraint
         const { data, error } = await supabaseClient.from('evaluation_metrics')
-            .insert([{ name, category, measurement_type: 'scale_0_to_5', is_active: true }])
+            .insert([{ 
+                name: name, 
+                category: category, 
+                measurement_type: measurementType, 
+                is_active: true 
+            }])
             .select().single();
         if (error) throw error;
         return { success: true, data };
