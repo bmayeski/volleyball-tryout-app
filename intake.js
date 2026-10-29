@@ -71,13 +71,16 @@ async function submitIntakeForm(event) {
     const positionCheckboxes = document.querySelectorAll('input[name="position"]:checked');
     const positionsArray = Array.from(positionCheckboxes).map(cb => cb.value);
 
-    // NEW: Validation to ensure at least one position (or "Unknown") is selected
     if (positionsArray.length === 0) {
         alert("Please select at least one preferred position, or choose 'No Preference'.");
         btn.innerText = "Submit Registration"; 
         btn.disabled = false;
-        return; // Stops the form from submitting to Supabase
+        return; 
     }
+
+    const firstName = document.getElementById('first_name').value.trim();
+    const lastName = document.getElementById('last_name').value.trim();
+    const studentId = document.getElementById('student_id').value.trim() || null;
 
     let heightInches = null;
     const heightInput = document.getElementById('height_input').value.trim();
@@ -88,9 +91,9 @@ async function submitIntakeForm(event) {
     }
 
     const newAthleteData = {
-        first_name: document.getElementById('first_name').value.trim(),
-        last_name: document.getElementById('last_name').value.trim(),
-        student_id: document.getElementById('student_id').value.trim() || null,
+        first_name: firstName,
+        last_name: lastName,
+        student_id: studentId,
         tryout_number: parseInt(document.getElementById('tryout_number').value),
         grade: parseInt(document.getElementById('grade').value),
         tryout_group: document.getElementById('tryout_group').value,
@@ -98,19 +101,41 @@ async function submitIntakeForm(event) {
         email: document.getElementById('email').value.trim(),
         height_inches: isNaN(heightInches) ? null : heightInches,
         experience: parseInt(document.getElementById('years_exp').value) || null,
-        preferred_position: positionsArray,
+        preferred_position: positionsArray.join(', '), // Changed to string for Supabase text column
         shirt_size: document.getElementById('shirt_size').value || null,
         spandex_size: document.getElementById('spandex_size').value || null,
         status: 'Evaluating'
     };
 
     try {
+        // --- NEW: DUPLICATE CHECK ---
+        let duplicateQuery = supabaseClient.from('athletes').select('id');
+        
+        if (studentId) {
+            duplicateQuery = duplicateQuery.eq('student_id', studentId);
+        } else {
+            // If no ID is used, check for matching First and Last Name (case-insensitive)
+            duplicateQuery = duplicateQuery.ilike('first_name', firstName).ilike('last_name', lastName);
+        }
+
+        const { data: existingAthletes, error: searchError } = await duplicateQuery;
+        
+        if (searchError) throw searchError;
+
+        if (existingAthletes && existingAthletes.length > 0) {
+            alert("An athlete with this Student ID or Name is already registered! Please see the desk if this is a mistake.");
+            btn.innerText = "Submit Registration"; 
+            btn.disabled = false;
+            return; // Stop the form from creating a duplicate
+        }
+        // --- END DUPLICATE CHECK ---
+
         const { error } = await supabaseClient.from('athletes').insert([newAthleteData]);
         if (error) throw error;
+        
         document.getElementById('intakeForm').style.display = 'none';
         document.getElementById('successMessage').style.display = 'block';
     } catch (error) {
-        // This will print the exact database error to your screen!
         alert("Error submitting: " + (error.message || JSON.stringify(error)));
         console.error("Supabase Error:", error);
         
