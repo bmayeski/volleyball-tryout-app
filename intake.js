@@ -71,6 +71,14 @@ async function submitIntakeForm(event) {
     const positionCheckboxes = document.querySelectorAll('input[name="position"]:checked');
     const positionsArray = Array.from(positionCheckboxes).map(cb => cb.value);
 
+    // NEW: Validation to ensure at least one position (or "Unknown") is selected
+    if (positionsArray.length === 0) {
+        alert("Please select at least one preferred position, or choose 'No Preference'.");
+        btn.innerText = "Submit Registration"; 
+        btn.disabled = false;
+        return; // Stops the form from submitting to Supabase
+    }
+
     let heightInches = null;
     const heightInput = document.getElementById('height_input').value.trim();
     if (heightInput !== '') {
