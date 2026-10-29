@@ -97,7 +97,7 @@ async function submitIntakeForm(event) {
         phone: document.getElementById('phone').value.trim(),
         email: document.getElementById('email').value.trim(),
         height_inches: isNaN(heightInches) ? null : heightInches,
-        years_exp: parseInt(document.getElementById('years_exp').value) || null,
+        experience: parseInt(document.getElementById('years_exp').value) || null,
         preferred_position: positionsArray,
         shirt_size: document.getElementById('shirt_size').value || null,
         spandex_size: document.getElementById('spandex_size').value || null,
@@ -110,7 +110,11 @@ async function submitIntakeForm(event) {
         document.getElementById('intakeForm').style.display = 'none';
         document.getElementById('successMessage').style.display = 'block';
     } catch (error) {
-        alert("Error submitting. Please try again.");
-        btn.innerText = "Submit Registration"; btn.disabled = false;
+        // This will print the exact database error to your screen!
+        alert("Error submitting: " + (error.message || JSON.stringify(error)));
+        console.error("Supabase Error:", error);
+        
+        btn.innerText = "Submit Registration"; 
+        btn.disabled = false;
     }
 }
