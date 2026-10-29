@@ -94,15 +94,21 @@ async function apiSaveScoreToDatabase(athleteId, metricName, score) {
         const metricId = metricCache[metricName];
         if (!metricId) throw new Error(`Metric '${metricName}' not found in database.`);
         
+        // Grab the currently logged-in coach's ID
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        
+        const payload = {
+            athlete_id: athleteId,
+            metric_id: metricId,
+            raw_score: score,
+            updated_at: new Date().toISOString()
+        };
+        if (user) payload.evaluator_id = user.id;
+
         // Upsert the score
         const { error } = await supabaseClient
             .from('evaluations')
-            .upsert({
-                athlete_id: athleteId,
-                metric_id: metricId,
-                raw_score: score,
-                updated_at: new Date().toISOString()
-            }, { 
+            .upsert(payload, { 
                 onConflict: 'athlete_id, metric_id' 
             });
             
@@ -181,7 +187,7 @@ async function apiFetchSettings() {
     }
 }
 
-async function apiSaveSettings(requireId, themeColor, programName, logoUrl, teamNames, tryoutGroups) {
+async function apiSaveSettings(requireId, themeColor, programName, logoUrl, teamNames, tryoutGroups, gradeRange) {
     try {
         const { error } = await supabaseClient.from('app_settings').update({
             require_student_id: requireId,
@@ -189,7 +195,8 @@ async function apiSaveSettings(requireId, themeColor, programName, logoUrl, team
             program_name: programName,
             logo_url: logoUrl,
             team_names: teamNames,
-            tryout_groups: tryoutGroups // Maps to your new database column
+            tryout_groups: tryoutGroups,
+            grade_range: gradeRange // NEW Database Column
         }).eq('id', 1);
         if (error) throw error;
         return { success: true };
@@ -288,4 +295,29 @@ async function apiDeleteMetric(id) {
         }
         return { success: false, error: error.message };
     }
+}
+
+// ==========================================
+// 8. AUTHENTICATION (COACH LOGIN)
+// ==========================================
+async function apiLoginCoach(email, password) {
+    try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+        if (error) throw error;
+        return { success: true, user: data.user };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+async function apiLogoutCoach() {
+    await supabaseClient.auth.signOut();
+}
+
+async function apiGetCurrentSession() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    return session;
 }

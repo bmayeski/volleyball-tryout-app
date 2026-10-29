@@ -7,6 +7,8 @@ let currentProfileId = null;
 let currentSelectedStation = "";
 let globalTeamNames = ['Varsity', 'JV', 'Freshman']; // Default fallback
 let globalTryoutGroups = ['1', '2', '3'];
+let globalGradeRange = '9-12';
+let globalProgramName = 'Tryout Manager'; // Let's store this globally so the PDFs can use it!
 
 const STATION_CONFIG = {
     "Vertical Jump": { min: 84, max: 120, step: 0.5, default: 90, display: (val) => Math.floor(val/12) + "'" + (val%12) + '"' }, 
@@ -72,7 +74,7 @@ function getSmartMetricConfig(stationName) {
 // ==========================================
 // INITIALIZATION & ROUTING
 // ==========================================
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", async function() {
     // Setup Hamburger Menu
     const hamburgerBtn = document.getElementById('hamburgerBtn');
     const sidebar = document.getElementById('sidebar');
@@ -89,12 +91,54 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // Load Default View
-    loadView('overview');
-
-    // Fetch and apply your custom colors immediately
-    fetchAndApplySettings();
+    // Check if Coach is already logged in
+    const session = await apiGetCurrentSession();
+    if (session && session.user) {
+        unlockAppForCoach(session.user);
+    } else {
+        document.getElementById('loginOverlay').style.display = 'flex';
+    }
 });
+
+async function handleCoachLogin(event) {
+    event.preventDefault();
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPassword').value;
+    const errorDiv = document.getElementById('loginErrorMsg');
+    const btn = document.getElementById('btnLoginSubmit');
+
+    errorDiv.style.display = 'none';
+    btn.innerText = "Signing In...";
+    btn.disabled = true;
+
+    const result = await apiLoginCoach(email, pass);
+    if (result.success) {
+        document.getElementById('loginPassword').value = '';
+        unlockAppForCoach(result.user);
+    } else {
+        errorDiv.innerText = result.error || "Invalid login credentials.";
+        errorDiv.style.display = 'block';
+    }
+    btn.innerText = "Sign In";
+    btn.disabled = false;
+}
+
+function unlockAppForCoach(user) {
+    document.getElementById('loginOverlay').style.display = 'none';
+    const emailLabel = document.getElementById('sidebarUserEmail');
+    if (emailLabel && user.email) {
+        emailLabel.innerText = user.email;
+    }
+    fetchAndApplySettings();
+    loadView('overview');
+}
+
+async function handleCoachLogout() {
+    await apiLogoutCoach();
+    document.getElementById('sidebar')?.classList.remove('open');
+    document.getElementById('overlay')?.classList.remove('open');
+    document.getElementById('loginOverlay').style.display = 'flex';
+}
 
 function loadView(viewName) {
     // 1. Close mobile sidebar if open
@@ -136,6 +180,8 @@ function loadView(viewName) {
     } else if (viewName === 'settings') {
         pageTitle.innerText = "App Settings";
         fetchAndApplySettings(); // Pulls the latest colors/toggles from Supabase!
+    } else if (viewName === 'printables') {
+        pageTitle.innerText = "Printable Forms";
     }
 }
 
@@ -1131,6 +1177,10 @@ async function fetchAndApplySettings() {
             
             // NEW: Apply Groups to the Settings Input
             document.getElementById('settingTryoutGroups').value = settings.tryout_groups || '1, 2, 3';
+
+            document.getElementById('settingGradeRange').value = settings.grade_range || '9-12';
+            globalGradeRange = settings.grade_range || '9-12';
+            globalProgramName = settings.program_name || 'Tryout Manager';
             
             const sidebarName = document.getElementById('sidebarSchoolName');
             if (sidebarName && settings.program_name) {
@@ -1327,8 +1377,10 @@ async function saveAppSettings() {
     const logoUrl = document.getElementById('settingLogoUrl').value.trim();
     const teamNames = document.getElementById('settingTeamNames').value.trim();
     const tryoutGroups = document.getElementById('settingTryoutGroups').value.trim();
+    const gradeRange = document.getElementById('settingGradeRange').value; // NEW
 
-    const response = await apiSaveSettings(requireId, newColor, programName, logoUrl, teamNames, tryoutGroups);
+    // Pass the 7th parameter
+    const response = await apiSaveSettings(requireId, newColor, programName, logoUrl, teamNames, tryoutGroups, gradeRange);
     
     // 2. Save Metric Toggles & Bounds
     const metricCheckboxes = document.querySelectorAll('input[id^="metric_toggle_"]');
@@ -1369,4 +1421,52 @@ async function saveAppSettings() {
         btn.innerText = "Save All Settings";
         btn.disabled = false;
     }
+}
+
+// ==========================================
+// PRINTABLE QR CODE GENERATORS
+// ==========================================
+
+function generateQRPDF(type) {
+    const urlInput = type === 'intake' ? document.getElementById('intakeUrl').value.trim() : document.getElementById('adminUrl').value.trim();
+    const title = type === 'intake' ? 'Athlete Registration' : 'Coach Evaluation App';
+    const subtitle = type === 'intake' ? 'Scan the QR code below to register for tryouts.' : 'Scan the QR code below to access the Tryout Manager.';
+    
+    if (!urlInput || !urlInput.startsWith('http')) {
+        alert("Please paste a valid full URL (starting with http:// or https://) before generating the flyer.");
+        return;
+    }
+
+    // Call a free API to turn the URL into a high-res QR code image
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(urlInput)}`;
+
+    const win = window.open('', '_blank');
+    
+    // The onload event in the <img> tag ensures the browser doesn't try to print a blank box before the QR code finishes downloading
+    win.document.write(`
+        <html><head><title>QR Code - ${title}</title>
+        <style>
+            body { 
+                font-family: 'Arial', sans-serif; 
+                display: flex; 
+                flex-direction: column; 
+                align-items: center; 
+                justify-content: center; 
+                height: 90vh; 
+                text-align: center; 
+                color: #000; 
+            }
+            h1 { font-size: 48px; margin-bottom: 10px; }
+            h2 { font-size: 24px; font-weight: normal; color: #555; margin-bottom: 50px; }
+            img { width: 400px; height: 400px; border: 4px solid #000; padding: 20px; border-radius: 16px; }
+            .footer { margin-top: 40px; font-size: 20px; color: #555; font-weight: bold; }
+        </style>
+        </head><body>
+            <h1>${globalProgramName}</h1>
+            <h2>${title}</h2>
+            <img src="${qrUrl}" alt="QR Code" onload="window.print(); setTimeout(() => window.close(), 500);" />
+            <div class="footer">${subtitle}</div>
+        </body></html>
+    `);
+    win.document.close();
 }
