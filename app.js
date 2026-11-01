@@ -403,7 +403,7 @@ function renderTable(dataToRender) {
                 </div>
                 <div style="flex: 1; padding-top: 2px;">
                   <div style="font-weight: bold; font-size: 18px; color: var(--text-color); line-height: 1.2;">${athlete.first_name} ${athlete.last_name}</div>
-                  <div style="font-size: 13px; color: #94A3B8; margin-top: 6px;">${athlete.grade}th Grade • ${athlete.preferred_position ? athlete.preferred_position.join(', ') : 'Unknown'}</div>
+                  <div style="font-size: 13px; color: #94A3B8; margin-top: 6px;">${athlete.grade}th Grade • ${athlete.preferred_position || 'Unknown'}</div>
                   <div style="font-size: 12px; color: #94A3B8; margin-top: 2px;">Group ${athlete.tryout_group || 'Unassigned'}</div>
                 </div>
                 <select onchange="changeStatusInline(event, '${athlete.id}', this.value)" onclick="event.stopPropagation()" style="background: color-mix(in srgb, ${statusColor} 15%, transparent); color: ${statusColor}; padding: 6px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; text-transform: uppercase; border: none; outline: none; cursor: pointer; flex-shrink: 0;">
@@ -436,7 +436,7 @@ function renderAthleteProfile(athleteId) {
     if (img) { img.style.width = '100px'; img.style.height = '100px'; img.style.fontSize = '40px'; }
     
     document.getElementById('profileName').innerText = `#${athlete.tryout_number} - ${athlete.first_name} ${athlete.last_name}`;
-    document.getElementById('profileDetails').innerText = `Grade ${athlete.grade} • ${athlete.preferred_position ? athlete.preferred_position.join(', ') : 'Unknown'}`;
+    document.getElementById('profileDetails').innerText = `Grade ${athlete.grade} • ${athlete.preferred_position || 'Unknown'}`;
     
     document.getElementById('statusSelect').value = athlete.status;
     document.getElementById('groupSelect').value = athlete.tryout_group || 'Unassigned';
