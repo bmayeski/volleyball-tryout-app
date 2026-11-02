@@ -1492,3 +1492,49 @@ function generateQRPDF(type) {
     `);
     win.document.close();
 }
+
+// ==========================================
+// EXPORT ROSTER TO SPREADSHEET (CSV)
+// ==========================================
+function exportRosterCSV() {
+    if (!globalAthleteData || globalAthleteData.length === 0) {
+        alert("No athletes have registered yet!");
+        return;
+    }
+
+    // 1. Define the spreadsheet headers
+    const headers = ["Tryout #", "Last Name", "First Name", "Grade", "Phone Number", "Email"];
+    
+    // 2. Sort athletes by tryout number and extract just the requested info
+    const rows = globalAthleteData
+        .slice() // Create a safe copy to sort
+        .sort((a, b) => parseInt(a.tryout_number) - parseInt(b.tryout_number))
+        .map(athlete => {
+            return [
+                athlete.tryout_number,
+                `"${(athlete.last_name || '').replace(/"/g, '""')}"`,
+                `"${(athlete.first_name || '').replace(/"/g, '""')}"`,
+                athlete.grade,
+                `"${(athlete.phone || '').replace(/"/g, '""')}"`, // Quotes protect against commas in the data
+                `"${(athlete.email || '').replace(/"/g, '""')}"`
+            ].join(',');
+        });
+
+    // 3. Combine headers and rows into a CSV string
+    const csvContent = [headers.join(','), ...rows].join('\n');
+
+    // 4. Create a virtual file and trigger the download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    
+    // Name the file based on the program name
+    const safeProgramName = globalProgramName.replace(/[^a-z0-9]/gi, '_');
+    link.setAttribute("download", `${safeProgramName}_Tryout_Roster.csv`);
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
