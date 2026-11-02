@@ -432,10 +432,24 @@ function openAthleteProfile(athleteId) {
 function navigateProfile(direction, isReset = false) {
     if (!globalAthleteData || globalAthleteData.length === 0) return;
     
+    const filterGroup = document.getElementById('profileFilterGroup')?.value || 'All';
+    const filterStatus = document.getElementById('profileFilterStatus')?.value || 'All';
     const sortBy = document.getElementById('profileSortBy')?.value || 'number';
-    
-    // Sort athletes dynamically based on the dropdown selection
-    const sortedAthletes = globalAthleteData.slice().sort((a, b) => {
+
+    // 1. Filter the athletes FIRST
+    let filteredAthletes = globalAthleteData.filter(athlete => {
+        const groupMatch = (filterGroup === 'All') || (athlete.tryout_group === filterGroup);
+        const statusMatch = (filterStatus === 'All') || (athlete.status === filterStatus);
+        return groupMatch && statusMatch;
+    });
+
+    if (filteredAthletes.length === 0) {
+        alert("No athletes match these filters.");
+        return;
+    }
+
+    // 2. Sort the filtered athletes dynamically based on the dropdown selection
+    const sortedAthletes = filteredAthletes.sort((a, b) => {
         if (sortBy === 'lastAsc') return (a.last_name || '').localeCompare(b.last_name || '');
         if (sortBy === 'overallDesc') return b.overallAvg - a.overallAvg;
         if (sortBy === 'overallAsc') return a.overallAvg - b.overallAvg; 
@@ -450,7 +464,7 @@ function navigateProfile(direction, isReset = false) {
 
     // If the dropdown was just changed, immediately jump to the top of the newly sorted list!
     if (isReset) {
-        currentProfileId = sortedAthletes[0].id; // UPDATE THE CURRENT ID HERE
+        currentProfileId = sortedAthletes[0].id; 
         openAthleteProfile(currentProfileId);
         return;
     }
@@ -465,7 +479,7 @@ function navigateProfile(direction, isReset = false) {
         if (nextIndex < 0) nextIndex = sortedAthletes.length - 1;
         if (nextIndex >= sortedAthletes.length) nextIndex = 0;
         
-        currentProfileId = sortedAthletes[nextIndex].id; // UPDATE THE CURRENT ID HERE
+        currentProfileId = sortedAthletes[nextIndex].id; 
         openAthleteProfile(currentProfileId);
     }
 }
@@ -1278,10 +1292,17 @@ async function fetchAndApplySettings() {
             }
 
             const profileStatus = document.getElementById('statusSelect');
+            const profileNavStatus = document.getElementById('profileFilterStatus'); // NEW
+            
             if (profileStatus) {
                 profileStatus.innerHTML = `<option value="Evaluating">Evaluating (Pending)</option>`;
                 globalTeamNames.forEach(team => profileStatus.innerHTML += `<option value="${team}">${team}</option>`);
                 profileStatus.innerHTML += `<option value="Cut">Cut</option>`;
+            }
+            if (profileNavStatus) {
+                profileNavStatus.innerHTML = `<option value="All">All Statuses</option><option value="Evaluating">Evaluating (Pending)</option>`;
+                globalTeamNames.forEach(team => profileNavStatus.innerHTML += `<option value="${team}">${team}</option>`);
+                profileNavStatus.innerHTML += `<option value="Cut">Cut</option>`;
             }
 
             // Rebuild the Dashboard Group Filter Dropdown
@@ -1291,12 +1312,19 @@ async function fetchAndApplySettings() {
                 globalTryoutGroups.forEach(g => filterGroup.innerHTML += `<option value="${g}">${g}</option>`);
             }
 
-            // Rebuild the Athlete Profile Group Dropdown
+            // Rebuild the Athlete Profile Group Dropdowns
             const groupSelect = document.getElementById('groupSelect');
+            const profileNavGroup = document.getElementById('profileFilterGroup'); // NEW
+            
             if (groupSelect) {
                 groupSelect.innerHTML = '';
                 globalTryoutGroups.forEach(g => groupSelect.innerHTML += `<option value="${g}">${g}</option>`);
                 groupSelect.innerHTML += '<option value="Unassigned">Unassigned</option>';
+            }
+            
+            if (profileNavGroup) {
+                profileNavGroup.innerHTML = '<option value="All">All Groups</option>';
+                globalTryoutGroups.forEach(g => profileNavGroup.innerHTML += `<option value="${g}">${g}</option>`);
             }
         }
     }
