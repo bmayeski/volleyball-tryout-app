@@ -59,7 +59,7 @@ function getSmartMetricConfig(stationName) {
             config.display = (v) => Math.round(v) + " mph";
             config.step = 1;
         } else {
-            config.display = (v, m) => Number(v).toFixed(1) + " / " + m;
+            config.display = (v, m) => Number(v).toFixed(1);
         }
     }
     
@@ -1502,25 +1502,32 @@ function exportRosterCSV() {
         return;
     }
 
-    // 1. Define the spreadsheet headers
-    const headers = ["Tryout #", "Last Name", "First Name", "Grade", "Phone Number", "Email"];
+    // 1. Check if the program requires student IDs
+    const requireId = document.getElementById('settingRequireId').checked;
+
+    // 2. Define the spreadsheet headers dynamically
+    const headers = ["Tryout #"];
+    if (requireId) headers.push("Student ID");
+    headers.push("Last Name", "First Name", "Grade", "Phone Number", "Email");
     
-    // 2. Sort athletes by tryout number and extract just the requested info
+    // 3. Extract requested info
     const rows = globalAthleteData
-        .slice() // Create a safe copy to sort
+        .slice() 
         .sort((a, b) => parseInt(a.tryout_number) - parseInt(b.tryout_number))
         .map(athlete => {
-            return [
-                athlete.tryout_number,
+            let rowData = [athlete.tryout_number];
+            if (requireId) rowData.push(`"${(athlete.student_id || '').replace(/"/g, '""')}"`);
+            
+            rowData.push(
                 `"${(athlete.last_name || '').replace(/"/g, '""')}"`,
                 `"${(athlete.first_name || '').replace(/"/g, '""')}"`,
                 athlete.grade,
-                `"${(athlete.phone || '').replace(/"/g, '""')}"`, // Quotes protect against commas in the data
+                `"${(athlete.phone || '').replace(/"/g, '""')}"`, 
                 `"${(athlete.email || '').replace(/"/g, '""')}"`
-            ].join(',');
+            );
+            return rowData.join(',');
         });
 
-    // 3. Combine headers and rows into a CSV string
     const csvContent = [headers.join(','), ...rows].join('\n');
 
     // 4. Create a virtual file and trigger the download
@@ -1529,8 +1536,6 @@ function exportRosterCSV() {
     
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    
-    // Name the file based on the program name
     const safeProgramName = globalProgramName.replace(/[^a-z0-9]/gi, '_');
     link.setAttribute("download", `${safeProgramName}_Tryout_Roster.csv`);
     
@@ -1548,63 +1553,56 @@ function exportStatsCSV() {
         return;
     }
 
-    // 1. Identify all currently active metrics dynamically
+    const requireId = document.getElementById('settingRequireId').checked;
     const activeMetrics = globalMetricsData.filter(m => m.is_active).map(m => m.name);
 
-    // 2. Build the dynamic headers
-    const baseHeaders = ["Tryout #", "Student ID", "Last Name", "First Name", "Grade"];
-    const avgHeaders = ["Athleticism Avg", "Skills Avg", "Overall Avg"];
+    // Build the dynamic headers
+    const baseHeaders = ["Tryout #"];
+    if (requireId) baseHeaders.push("Student ID");
+    baseHeaders.push("Last Name", "First Name", "Grade");
     
-    // Combine base headers, all active metric names, and the average headers
+    const avgHeaders = ["Athleticism Avg", "Skills Avg", "Overall Avg"];
     const headers = [...baseHeaders, ...activeMetrics, ...avgHeaders];
     
-    // 3. Loop through athletes and extract their data
     const rows = globalAthleteData
         .slice() 
         .sort((a, b) => parseInt(a.tryout_number) - parseInt(b.tryout_number))
         .map(athlete => {
             
-            // Build the base info array
-            let rowData = [
-                athlete.tryout_number,
-                `"${(athlete.student_id || '').replace(/"/g, '""')}"`,
+            let rowData = [athlete.tryout_number];
+            if (requireId) rowData.push(`"${(athlete.student_id || '').replace(/"/g, '""')}"`);
+            
+            rowData.push(
                 `"${(athlete.last_name || '').replace(/"/g, '""')}"`,
                 `"${(athlete.first_name || '').replace(/"/g, '""')}"`,
                 athlete.grade
-            ];
+            );
 
-            // Loop through the active metrics and pull this athlete's specific score (or leave blank if unscored)
             activeMetrics.forEach(metricName => {
                 let rawVal = athlete.rawStats && athlete.rawStats[metricName] !== undefined ? athlete.rawStats[metricName] : '';
                 
                 if (rawVal !== '') {
-                    // Format the raw value (e.g. converting 300 seconds back to "5:00" for the spreadsheet)
                     const displayVal = formatRawStat(metricName, rawVal);
                     rowData.push(`"${displayVal.toString().replace(/"/g, '""')}"`);
                 } else {
-                    rowData.push(""); // Push an empty cell if they haven't done the drill yet
+                    rowData.push(""); 
                 }
             });
 
-            // Append their calculated averages
             rowData.push(athlete.athAvg > 0 ? athlete.athAvg.toFixed(1) : '');
             rowData.push(athlete.skillAvg > 0 ? athlete.skillAvg.toFixed(1) : '');
             rowData.push(athlete.overallAvg > 0 ? athlete.overallAvg.toFixed(1) : '');
 
-            // Join the row together with commas
             return rowData.join(',');
         });
 
-    // 4. Combine headers and rows into a CSV string
     const csvContent = [headers.join(','), ...rows].join('\n');
 
-    // 5. Create a virtual file and trigger the download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    
     const safeProgramName = globalProgramName.replace(/[^a-z0-9]/gi, '_');
     link.setAttribute("download", `${safeProgramName}_Full_Stats.csv`);
     
