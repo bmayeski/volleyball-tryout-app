@@ -438,11 +438,11 @@ function navigateProfile(direction, isReset = false) {
     const sortedAthletes = globalAthleteData.slice().sort((a, b) => {
         if (sortBy === 'lastAsc') return (a.last_name || '').localeCompare(b.last_name || '');
         if (sortBy === 'overallDesc') return b.overallAvg - a.overallAvg;
-        if (sortBy === 'overallAsc') return a.overallAvg - b.overallAvg; // NEW
+        if (sortBy === 'overallAsc') return a.overallAvg - b.overallAvg; 
         if (sortBy === 'athDesc') return b.athAvg - a.athAvg;
-        if (sortBy === 'athAsc') return a.athAvg - b.athAvg; // NEW
+        if (sortBy === 'athAsc') return a.athAvg - b.athAvg; 
         if (sortBy === 'skillDesc') return b.skillAvg - a.skillAvg;
-        if (sortBy === 'skillAsc') return a.skillAvg - b.skillAvg; // NEW
+        if (sortBy === 'skillAsc') return a.skillAvg - b.skillAvg; 
         if (sortBy === 'gradeDesc') return parseInt(b.grade) - parseInt(a.grade);
         // Default: Sort by Tryout Number
         return parseInt(a.tryout_number) - parseInt(b.tryout_number);
@@ -450,7 +450,8 @@ function navigateProfile(direction, isReset = false) {
 
     // If the dropdown was just changed, immediately jump to the top of the newly sorted list!
     if (isReset) {
-        openAthleteProfile(sortedAthletes[0].id);
+        currentProfileId = sortedAthletes[0].id; // UPDATE THE CURRENT ID HERE
+        openAthleteProfile(currentProfileId);
         return;
     }
 
@@ -464,7 +465,8 @@ function navigateProfile(direction, isReset = false) {
         if (nextIndex < 0) nextIndex = sortedAthletes.length - 1;
         if (nextIndex >= sortedAthletes.length) nextIndex = 0;
         
-        openAthleteProfile(sortedAthletes[nextIndex].id);
+        currentProfileId = sortedAthletes[nextIndex].id; // UPDATE THE CURRENT ID HERE
+        openAthleteProfile(currentProfileId);
     }
 }
 
