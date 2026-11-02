@@ -1538,3 +1538,77 @@ function exportRosterCSV() {
     link.click();
     document.body.removeChild(link);
 }
+
+// ==========================================
+// EXPORT FULL STATS TO SPREADSHEET (CSV)
+// ==========================================
+function exportStatsCSV() {
+    if (!globalAthleteData || globalAthleteData.length === 0) {
+        alert("No athletes have registered yet!");
+        return;
+    }
+
+    // 1. Identify all currently active metrics dynamically
+    const activeMetrics = globalMetricsData.filter(m => m.is_active).map(m => m.name);
+
+    // 2. Build the dynamic headers
+    const baseHeaders = ["Tryout #", "Student ID", "Last Name", "First Name", "Grade"];
+    const avgHeaders = ["Athleticism Avg", "Skills Avg", "Overall Avg"];
+    
+    // Combine base headers, all active metric names, and the average headers
+    const headers = [...baseHeaders, ...activeMetrics, ...avgHeaders];
+    
+    // 3. Loop through athletes and extract their data
+    const rows = globalAthleteData
+        .slice() 
+        .sort((a, b) => parseInt(a.tryout_number) - parseInt(b.tryout_number))
+        .map(athlete => {
+            
+            // Build the base info array
+            let rowData = [
+                athlete.tryout_number,
+                `"${(athlete.student_id || '').replace(/"/g, '""')}"`,
+                `"${(athlete.last_name || '').replace(/"/g, '""')}"`,
+                `"${(athlete.first_name || '').replace(/"/g, '""')}"`,
+                athlete.grade
+            ];
+
+            // Loop through the active metrics and pull this athlete's specific score (or leave blank if unscored)
+            activeMetrics.forEach(metricName => {
+                let rawVal = athlete.rawStats && athlete.rawStats[metricName] !== undefined ? athlete.rawStats[metricName] : '';
+                
+                if (rawVal !== '') {
+                    // Format the raw value (e.g. converting 300 seconds back to "5:00" for the spreadsheet)
+                    const displayVal = formatRawStat(metricName, rawVal);
+                    rowData.push(`"${displayVal.toString().replace(/"/g, '""')}"`);
+                } else {
+                    rowData.push(""); // Push an empty cell if they haven't done the drill yet
+                }
+            });
+
+            // Append their calculated averages
+            rowData.push(athlete.athAvg > 0 ? athlete.athAvg.toFixed(1) : '');
+            rowData.push(athlete.skillAvg > 0 ? athlete.skillAvg.toFixed(1) : '');
+            rowData.push(athlete.overallAvg > 0 ? athlete.overallAvg.toFixed(1) : '');
+
+            // Join the row together with commas
+            return rowData.join(',');
+        });
+
+    // 4. Combine headers and rows into a CSV string
+    const csvContent = [headers.join(','), ...rows].join('\n');
+
+    // 5. Create a virtual file and trigger the download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    
+    const safeProgramName = globalProgramName.replace(/[^a-z0-9]/gi, '_');
+    link.setAttribute("download", `${safeProgramName}_Full_Stats.csv`);
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
