@@ -251,10 +251,17 @@
             ← Back to Dashboard
           </button>
         
-          <div class="mobile-card" style="text-align: center; margin-bottom: 20px;">
-            <div id="profilePhotoContainer" style="display: flex; justify-content: center; margin-bottom: 15px;"></div>
-            <h2 id="profileName" style="margin: 0; color: var(--text-color);"></h2>
-            <div id="profileDetails" style="color: #94A3B8; margin-top: 5px; font-size: 15px;"></div>
+          <!-- Updated Player Header with Navigation Arrows -->
+          <div class="mobile-card" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding: 15px 5px;">
+            <button onclick="navigateProfile(-1)" style="background: none; border: none; color: var(--accentBlue); font-size: 28px; cursor: pointer; padding: 10px; transition: 0.2s;">❮</button>
+            
+            <div style="flex: 1; text-align: center;">
+              <div id="profilePhotoContainer" style="display: flex; justify-content: center; margin-bottom: 10px;"></div>
+              <h2 id="profileName" style="margin: 0; color: var(--text-color); font-size: 20px;"></h2>
+              <div id="profileDetails" style="color: #94A3B8; margin-top: 5px; font-size: 14px;"></div>
+            </div>
+            
+            <button onclick="navigateProfile(1)" style="background: none; border: none; color: var(--accentBlue); font-size: 28px; cursor: pointer; padding: 10px; transition: 0.2s;">❯</button>
           </div>
         
           <div class="mobile-card" style="margin-bottom: 20px; border: 1px solid var(--accentBlue);">
@@ -486,12 +493,15 @@
 
   <!-- Manage Photo Modal -->
   <div id="photoActionModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box;">
-    <div class="mobile-card" style="width: 100%; max-width: 300px; text-align: center; margin: 0; border-top: 4px solid var(--accentBlue) !important;">
-      <h3 style="margin-top: 0; margin-bottom: 20px; color: var(--text-color);">Manage Photo</h3>
+    <div class="mobile-card" style="width: 100%; max-width: 320px; text-align: center; margin: 0; border-top: 4px solid var(--accentBlue) !important;">
+      <h3 style="margin-top: 0; margin-bottom: 15px; color: var(--text-color);">Manage Photo</h3>
+      
+      <!-- NEW: Large Photo Display -->
+      <img id="modalLargePhoto" src="" style="width: 100%; max-height: 280px; object-fit: cover; border-radius: 8px; margin-bottom: 15px; display: none; border: 2px solid #3A4150;">
       
       <button class="btn-action" style="width: 100%; margin-bottom: 12px; padding: 12px; background: var(--accentBlue); color: white; border: none; font-size: 16px;" onclick="triggerRetakePhoto()">📷 Take New Photo</button>
       
-      <button class="btn-action" style="width: 100%; margin-bottom: 15px; padding: 12px; background: rgba(239, 68, 68, 0.1); color: var(--color-cut); border: 1px solid var(--color-cut); font-size: 16px;" onclick="removeAthletePhoto()">🗑️ Remove Photo</button>
+      <button id="btnRemovePhoto" class="btn-action" style="width: 100%; margin-bottom: 15px; padding: 12px; background: rgba(239, 68, 68, 0.1); color: var(--color-cut); border: 1px solid var(--color-cut); font-size: 16px;" onclick="removeAthletePhoto()">🗑️ Remove Photo</button>
       
       <button class="btn-action" style="width: 100%; padding: 12px; background: #3A4150; color: white; border: none; font-size: 16px;" onclick="closePhotoModal()">Cancel</button>
     </div>

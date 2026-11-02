@@ -427,6 +427,26 @@ function openAthleteProfile(athleteId) {
     renderAthleteProfile(athleteId);
 }
 
+// Navigates to the previous (-1) or next (+1) athlete based on Tryout Number
+function navigateProfile(direction) {
+    if (!globalAthleteData || globalAthleteData.length === 0) return;
+    
+    // Sort athletes to ensure navigation follows tryout numbers sequentially
+    const sortedAthletes = globalAthleteData.slice().sort((a, b) => parseInt(a.tryout_number) - parseInt(b.tryout_number));
+    const currentIndex = sortedAthletes.findIndex(a => a.id === currentProfileId);
+    
+    if (currentIndex !== -1) {
+        let nextIndex = currentIndex + direction;
+        
+        // Loop around if they go past the ends
+        if (nextIndex < 0) nextIndex = sortedAthletes.length - 1;
+        if (nextIndex >= sortedAthletes.length) nextIndex = 0;
+        
+        // Re-render the profile with the new athlete
+        openAthleteProfile(sortedAthletes[nextIndex].id);
+    }
+}
+
 function renderAthleteProfile(athleteId) {
     const athlete = globalAthleteData.find(a => a.id === athleteId);
     if (!athlete) return;
@@ -1015,6 +1035,23 @@ let currentPhotoAthleteId = null;
 function openPhotoModal(event, athleteId) {
     if (event) event.stopPropagation(); // Prevents the Dashboard card from opening the profile
     currentPhotoAthleteId = athleteId;
+    
+    const athlete = globalAthleteData.find(a => a.id === athleteId);
+    const largePhoto = document.getElementById('modalLargePhoto');
+    const removeBtn = document.getElementById('btnRemovePhoto');
+    
+    if (athlete && athlete.photo_url) {
+        // Display the large photo and the remove button
+        largePhoto.src = athlete.photo_url;
+        largePhoto.style.display = 'block';
+        removeBtn.style.display = 'block';
+    } else {
+        // Hide the image frame and remove button if they just tapped the placeholder camera icon
+        largePhoto.src = '';
+        largePhoto.style.display = 'none';
+        removeBtn.style.display = 'none'; 
+    }
+    
     document.getElementById('photoActionModal').style.display = 'flex';
 }
 
