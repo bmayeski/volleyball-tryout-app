@@ -293,51 +293,61 @@
       </div>
 
       <!-- ==========================================
-           VIEW: PRINTABLES (QR FLYERS)
+           VIEW: PRINTABLES & REPORTS
       ========================================== -->
       <div id="view-printables" class="app-view" style="display: none;">
-        <div style="max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+        <div style="max-width: 900px; margin: 0 auto; padding-bottom: 40px;">
           
-          <!-- Athlete Intake QR Card -->
-          <div class="mobile-card" style="display: flex; flex-direction: column; justify-content: space-between; border-top: 4px solid var(--accentBlue) !important;">
-            <div>
-              <h3 style="margin-top: 0; color: var(--accentBlue);">📱 Athlete Intake QR</h3>
-              <p style="color: #94A3B8; font-size: 14px; line-height: 1.5;">Print a flyer with a QR code directing athletes to the intake form on their phones.</p>
-              
-              <label style="font-size: 11px; color: #94A3B8; text-transform: uppercase; font-weight: bold;">Intake App URL</label>
-              <input type="text" id="intakeUrl" class="search-box" style="width: 100%; box-sizing: border-box; margin-top: 5px;" placeholder="https://your-intake-app.vercel.app">
+          <!-- SECTION 1: QR CODE FLYERS -->
+          <h3 style="color: var(--text-color); margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #2A303C; padding-bottom: 10px;">Printable QR Flyers</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 40px;">
+            
+            <!-- Athlete Intake QR Card -->
+            <div class="mobile-card" style="display: flex; flex-direction: column; justify-content: space-between; border-top: 4px solid var(--accentBlue) !important;">
+              <div>
+                <h3 style="margin-top: 0; color: var(--accentBlue);">📱 Athlete Intake QR</h3>
+                <p style="color: #94A3B8; font-size: 14px; line-height: 1.5;">Print a flyer with a QR code directing athletes to the intake form on their phones.</p>
+                
+                <label style="font-size: 11px; color: #94A3B8; text-transform: uppercase; font-weight: bold;">Intake App URL</label>
+                <input type="text" id="intakeUrl" class="search-box" style="width: 100%; box-sizing: border-box; margin-top: 5px;" placeholder="https://your-intake-app.vercel.app">
+              </div>
+              <button class="btn-action" onclick="generateQRPDF('intake')" style="width: 100%; padding: 12px; margin-top: 20px; font-size: 16px; background: var(--accentBlue); color: white;">Generate Flyer</button>
             </div>
-            <button class="btn-action" onclick="generateQRPDF('intake')" style="width: 100%; padding: 12px; margin-top: 20px; font-size: 16px; background: var(--accentBlue); color: white;">Generate Flyer</button>
+
+            <!-- Admin Eval QR Card -->
+            <div class="mobile-card" style="display: flex; flex-direction: column; justify-content: space-between; border-top: 4px solid var(--accentGreen) !important;">
+              <div>
+                <h3 style="margin-top: 0; color: var(--accentGreen);">📱 Admin App QR</h3>
+                <p style="color: #94A3B8; font-size: 14px; line-height: 1.5;">Print a flyer for coaches and admins to scan and access this manager app.</p>
+                
+                <label style="font-size: 11px; color: #94A3B8; text-transform: uppercase; font-weight: bold;">Admin App URL</label>
+                <input type="text" id="adminUrl" class="search-box" style="width: 100%; box-sizing: border-box; margin-top: 5px;" placeholder="https://your-admin-app.vercel.app">
+              </div>
+              <button class="btn-action" onclick="generateQRPDF('admin')" style="width: 100%; padding: 12px; margin-top: 20px; font-size: 16px; background: var(--accentGreen); color: white;">Generate Flyer</button>
+            </div>
           </div>
 
-          <!-- Admin Eval QR Card -->
-          <div class="mobile-card" style="display: flex; flex-direction: column; justify-content: space-between; border-top: 4px solid var(--accentGreen) !important;">
-            <div>
-              <h3 style="margin-top: 0; color: var(--accentGreen);">📱 Admin App QR</h3>
-              <p style="color: #94A3B8; font-size: 14px; line-height: 1.5;">Print a flyer for coaches and admins to scan and access this manager app.</p>
-              
-              <label style="font-size: 11px; color: #94A3B8; text-transform: uppercase; font-weight: bold;">Admin App URL</label>
-              <input type="text" id="adminUrl" class="search-box" style="width: 100%; box-sizing: border-box; margin-top: 5px;" placeholder="https://your-admin-app.vercel.app">
+          <!-- SECTION 2: SPREADSHEET EXPORTS -->
+          <h3 style="color: var(--text-color); margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #2A303C; padding-bottom: 10px;">Spreadsheet Exports (CSV)</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+            
+            <!-- Export Roster Card -->
+            <div class="mobile-card" style="display: flex; flex-direction: column; justify-content: space-between; border-top: 4px solid var(--secondary) !important;">
+              <div>
+                <h3 style="margin-top: 0; color: var(--secondary);">📊 Export Roster</h3>
+                <p style="color: #94A3B8; font-size: 14px; line-height: 1.5;">Download a spreadsheet of all registered athletes and their contact information.</p>
+              </div>
+              <button class="btn-action" onclick="exportRosterCSV()" style="width: 100%; padding: 12px; margin-top: 20px; font-size: 16px; background: var(--secondary); color: white;">Download Roster</button>
             </div>
-            <button class="btn-action" onclick="generateQRPDF('admin')" style="width: 100%; padding: 12px; margin-top: 20px; font-size: 16px; background: var(--accentGreen); color: white;">Generate Flyer</button>
-          </div>
 
-          <!-- Export Roster Card -->
-          <div class="mobile-card" style="display: flex; flex-direction: column; justify-content: space-between; border-top: 4px solid var(--secondary) !important;">
-            <div>
-              <h3 style="margin-top: 0; color: var(--secondary);">📊 Export Roster (CSV)</h3>
-              <p style="color: #94A3B8; font-size: 14px; line-height: 1.5;">Download a spreadsheet of all registered athletes and their contact information.</p>
+            <!-- Export Full Stats Card -->
+            <div class="mobile-card" style="display: flex; flex-direction: column; justify-content: space-between; border-top: 4px solid var(--secondary) !important;">
+              <div>
+                <h3 style="margin-top: 0; color: var(--secondary);">📈 Export Full Stats</h3>
+                <p style="color: #94A3B8; font-size: 14px; line-height: 1.5;">Download a complete spreadsheet including all player information, raw drill scores, and calculated averages.</p>
+              </div>
+              <button class="btn-action" onclick="exportStatsCSV()" style="width: 100%; padding: 12px; margin-top: 20px; font-size: 16px; background: var(--secondary); color: white;">Download Stats</button>
             </div>
-            <button class="btn-action" onclick="exportRosterCSV()" style="width: 100%; padding: 12px; margin-top: 20px; font-size: 16px; background: var(--secondary); color: white;">Download Spreadsheet</button>
-          </div>
-
-          <!-- Export Full Stats Card -->
-          <div class="mobile-card" style="display: flex; flex-direction: column; justify-content: space-between; border-top: 4px solid var(--accentBlue) !important;">
-            <div>
-              <h3 style="margin-top: 0; color: var(--accentBlue);">📈 Export Full Stats (CSV)</h3>
-              <p style="color: #94A3B8; font-size: 14px; line-height: 1.5;">Download a complete spreadsheet including all player information, raw drill scores, and calculated averages.</p>
-            </div>
-            <button class="btn-action" onclick="exportStatsCSV()" style="width: 100%; padding: 12px; margin-top: 20px; font-size: 16px; background: var(--accentBlue); color: white;">Download Stats</button>
           </div>
 
         </div>
