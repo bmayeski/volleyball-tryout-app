@@ -428,22 +428,33 @@ function openAthleteProfile(athleteId) {
 }
 
 // Navigates to the previous (-1) or next (+1) athlete based on the selected sort order
-function navigateProfile(direction) {
+// isReset = true means the dropdown just changed, so we want to jump to the very first player in the new list
+function navigateProfile(direction, isReset = false) {
     if (!globalAthleteData || globalAthleteData.length === 0) return;
     
     const sortBy = document.getElementById('profileSortBy')?.value || 'number';
     
     // Sort athletes dynamically based on the dropdown selection
     const sortedAthletes = globalAthleteData.slice().sort((a, b) => {
-        if (sortBy === 'lastAsc') return a.last_name.localeCompare(b.last_name);
+        if (sortBy === 'lastAsc') return (a.last_name || '').localeCompare(b.last_name || '');
         if (sortBy === 'overallDesc') return b.overallAvg - a.overallAvg;
+        if (sortBy === 'overallAsc') return a.overallAvg - b.overallAvg; // NEW
         if (sortBy === 'athDesc') return b.athAvg - a.athAvg;
+        if (sortBy === 'athAsc') return a.athAvg - b.athAvg; // NEW
         if (sortBy === 'skillDesc') return b.skillAvg - a.skillAvg;
+        if (sortBy === 'skillAsc') return a.skillAvg - b.skillAvg; // NEW
         if (sortBy === 'gradeDesc') return parseInt(b.grade) - parseInt(a.grade);
         // Default: Sort by Tryout Number
         return parseInt(a.tryout_number) - parseInt(b.tryout_number);
     });
 
+    // If the dropdown was just changed, immediately jump to the top of the newly sorted list!
+    if (isReset) {
+        openAthleteProfile(sortedAthletes[0].id);
+        return;
+    }
+
+    // Otherwise, calculate the next index based on the arrow click
     const currentIndex = sortedAthletes.findIndex(a => a.id === currentProfileId);
     
     if (currentIndex !== -1) {
@@ -453,10 +464,7 @@ function navigateProfile(direction) {
         if (nextIndex < 0) nextIndex = sortedAthletes.length - 1;
         if (nextIndex >= sortedAthletes.length) nextIndex = 0;
         
-        // Re-render the profile with the new athlete (unless direction is 0, which just re-sorts)
-        if (direction !== 0) {
-            openAthleteProfile(sortedAthletes[nextIndex].id);
-        }
+        openAthleteProfile(sortedAthletes[nextIndex].id);
     }
 }
 

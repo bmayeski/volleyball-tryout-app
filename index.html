@@ -248,28 +248,31 @@
       <div id="view-profile" class="app-view" style="display: none;">
         <div class="profile-container" style="padding-bottom: 30px;">
           
-          <!-- COMBINED HEADER: Back Button & Navigation Sorter -->
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; gap: 10px; flex-wrap: wrap;">
-            
-            <button class="btn-action" style="background: transparent; border: 1px solid #3A4150; color: #94A3B8; padding: 8px 12px; font-size: 13px;" onclick="loadView('overview')">
-              ← Back
+          <!-- Back Button Row (Top Left) -->
+          <div style="margin-bottom: 15px;">
+            <button class="btn-action" style="background: transparent; border: 1px solid #3A4150; color: #94A3B8; padding: 8px 16px; font-size: 13px;" onclick="loadView('overview')">
+              ← Back to Dashboard
             </button>
-            
-            <div style="display: flex; align-items: center; background: var(--card-bg); padding: 4px 8px; border-radius: 8px; border: 1px solid #3A4150; flex: 1; justify-content: flex-end;">
-              <span style="font-size: 10px; color: #94A3B8; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; margin-right: 6px;">Sort:</span>
-              <select id="profileSortBy" class="search-box" style="width: auto; padding: 4px; font-size: 12px; border: none; background: transparent; color: var(--text-color); cursor: pointer; outline: none; max-width: 150px; text-overflow: ellipsis;" onchange="navigateProfile(0)">
-                <option value="number">Tryout # (Low - High)</option>
-                <option value="overallDesc">Overall (High - Low)</option>
-                <option value="skillDesc">Skills (High - Low)</option>
-                <option value="athDesc">Athleticism (High - Low)</option>
-                <option value="lastAsc">Name (A-Z)</option>
-                <option value="gradeDesc">Grade (Oldest - Youngest)</option>
-              </select>
-            </div>
+          </div>
+
+          <!-- NEW: Dedicated Navigation Sorter Row (Full Width) -->
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; background: var(--card-bg); padding: 12px 16px; border-radius: 8px; border: 1px solid #3A4150;">
+            <span style="font-size: 11px; color: #94A3B8; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; flex-shrink: 0;">Sort Order:</span>
+            <select id="profileSortBy" class="search-box" style="flex: 1; margin-left: 15px; padding: 8px; font-size: 14px; border: 1px solid #2A303C; background: #1A1D24; color: var(--text-color); cursor: pointer;" onchange="navigateProfile(0, true)">
+              <option value="number">Tryout # (Low - High)</option>
+              <option value="overallDesc">Overall (High - Low)</option>
+              <option value="overallAsc">Overall (Low - High)</option>
+              <option value="skillDesc">Skills (High - Low)</option>
+              <option value="skillAsc">Skills (Low - High)</option>
+              <option value="athDesc">Athleticism (High - Low)</option>
+              <option value="athAsc">Athleticism (Low - High)</option>
+              <option value="lastAsc">Name (A-Z)</option>
+              <option value="gradeDesc">Grade (Oldest - Youngest)</option>
+            </select>
           </div>
 
           <!-- Updated Player Header with Navigation Arrows -->
-          <div class="mobile-card" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding: 15px 5px;">
+          <div class="mobile-card" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding: 15px 5px; border-top: 4px solid var(--secondary) !important;">
             <button onclick="navigateProfile(-1)" style="background: none; border: none; color: var(--accentBlue); font-size: 28px; cursor: pointer; padding: 10px; transition: 0.2s;">❮</button>
             
             <div style="flex: 1; text-align: center;">
