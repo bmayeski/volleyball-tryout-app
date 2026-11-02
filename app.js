@@ -427,12 +427,23 @@ function openAthleteProfile(athleteId) {
     renderAthleteProfile(athleteId);
 }
 
-// Navigates to the previous (-1) or next (+1) athlete based on Tryout Number
+// Navigates to the previous (-1) or next (+1) athlete based on the selected sort order
 function navigateProfile(direction) {
     if (!globalAthleteData || globalAthleteData.length === 0) return;
     
-    // Sort athletes to ensure navigation follows tryout numbers sequentially
-    const sortedAthletes = globalAthleteData.slice().sort((a, b) => parseInt(a.tryout_number) - parseInt(b.tryout_number));
+    const sortBy = document.getElementById('profileSortBy')?.value || 'number';
+    
+    // Sort athletes dynamically based on the dropdown selection
+    const sortedAthletes = globalAthleteData.slice().sort((a, b) => {
+        if (sortBy === 'lastAsc') return a.last_name.localeCompare(b.last_name);
+        if (sortBy === 'overallDesc') return b.overallAvg - a.overallAvg;
+        if (sortBy === 'athDesc') return b.athAvg - a.athAvg;
+        if (sortBy === 'skillDesc') return b.skillAvg - a.skillAvg;
+        if (sortBy === 'gradeDesc') return parseInt(b.grade) - parseInt(a.grade);
+        // Default: Sort by Tryout Number
+        return parseInt(a.tryout_number) - parseInt(b.tryout_number);
+    });
+
     const currentIndex = sortedAthletes.findIndex(a => a.id === currentProfileId);
     
     if (currentIndex !== -1) {
@@ -442,8 +453,10 @@ function navigateProfile(direction) {
         if (nextIndex < 0) nextIndex = sortedAthletes.length - 1;
         if (nextIndex >= sortedAthletes.length) nextIndex = 0;
         
-        // Re-render the profile with the new athlete
-        openAthleteProfile(sortedAthletes[nextIndex].id);
+        // Re-render the profile with the new athlete (unless direction is 0, which just re-sorts)
+        if (direction !== 0) {
+            openAthleteProfile(sortedAthletes[nextIndex].id);
+        }
     }
 }
 
