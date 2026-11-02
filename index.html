@@ -247,23 +247,27 @@
       ========================================== -->
       <div id="view-profile" class="app-view" style="display: none;">
         <div class="profile-container" style="padding-bottom: 30px;">
-          <button class="btn-action" style="margin-bottom: 15px; background: transparent; border: 1px solid #3A4150; color: #94A3B8;" onclick="loadView('overview')">
-            ← Back to Dashboard
-          </button>
-
-          <!-- NEW: Profile Navigation Sorter -->
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; background: var(--card-bg); padding: 8px 12px; border-radius: 8px; border: 1px solid #3A4150;">
-            <span style="font-size: 11px; color: #94A3B8; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px;">Navigation Order:</span>
-            <select id="profileSortBy" class="search-box" style="width: auto; padding: 6px; font-size: 12px; border: none; background: transparent; color: var(--text-color); cursor: pointer;" onchange="navigateProfile(0)">
-              <option value="number">Tryout # (Low to High)</option>
-              <option value="overallDesc">Overall Rating (High to Low)</option>
-              <option value="skillDesc">Volleyball Skills (High to Low)</option>
-              <option value="athDesc">Athleticism (High to Low)</option>
-              <option value="lastAsc">Last Name (A-Z)</option>
-              <option value="gradeDesc">Grade (Oldest to Youngest)</option>
-            </select>
+          
+          <!-- COMBINED HEADER: Back Button & Navigation Sorter -->
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; gap: 10px; flex-wrap: wrap;">
+            
+            <button class="btn-action" style="background: transparent; border: 1px solid #3A4150; color: #94A3B8; padding: 8px 12px; font-size: 13px;" onclick="loadView('overview')">
+              ← Back
+            </button>
+            
+            <div style="display: flex; align-items: center; background: var(--card-bg); padding: 4px 8px; border-radius: 8px; border: 1px solid #3A4150; flex: 1; justify-content: flex-end;">
+              <span style="font-size: 10px; color: #94A3B8; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; margin-right: 6px;">Sort:</span>
+              <select id="profileSortBy" class="search-box" style="width: auto; padding: 4px; font-size: 12px; border: none; background: transparent; color: var(--text-color); cursor: pointer; outline: none; max-width: 150px; text-overflow: ellipsis;" onchange="navigateProfile(0)">
+                <option value="number">Tryout # (Low - High)</option>
+                <option value="overallDesc">Overall (High - Low)</option>
+                <option value="skillDesc">Skills (High - Low)</option>
+                <option value="athDesc">Athleticism (High - Low)</option>
+                <option value="lastAsc">Name (A-Z)</option>
+                <option value="gradeDesc">Grade (Oldest - Youngest)</option>
+              </select>
+            </div>
           </div>
-        
+
           <!-- Updated Player Header with Navigation Arrows -->
           <div class="mobile-card" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding: 15px 5px;">
             <button onclick="navigateProfile(-1)" style="background: none; border: none; color: var(--accentBlue); font-size: 28px; cursor: pointer; padding: 10px; transition: 0.2s;">❮</button>
